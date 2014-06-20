@@ -1,0 +1,35 @@
+.offcanvas-top {
+  position: relative;
+  overflow: hidden;
+  height: 3.2em;
+  -webkit-transition: height 0.5s ease-out; 
+  -moz-transition: height 0.5s ease-out;  
+  -o-transition: height 0.5s ease-out; 
+  transition: height 0.5s ease-out;
+}
+.offcanvas-top.active {
+  height: 13.6em;
+}
+.o-content {
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  padding: 1em 1em 2.5em;
+  
+}
+.crumbs li a {
+  display: block;
+  padding: 1em;
+  border-bottom: 1px solid #000;
+}
+.crumbs li:last-child a {
+  border-bottom: 0;
+}
+#trigger {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  display: block;
+  font-size: 1em; 
+  padding: 0 1em 1em;
+}
