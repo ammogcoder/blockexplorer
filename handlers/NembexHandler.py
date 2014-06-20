@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
+
+'''
+Distributed under the MIT License, see accompanying file LICENSE.txt
+'''
+
 import tornado.locale
 import tornado.gen
 import ujson as json

@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
+'''
+Distributed under the MIT License, see accompanying file LICENSE.txt
+'''
+
 import tornado.web
 from pycket.session import SessionMixin
 

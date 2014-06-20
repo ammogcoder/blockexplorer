@@ -1,6 +1,10 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*- 
 
+'''
+Distributed under the MIT License, see accompanying file LICENSE.txt
+'''
+
 import tornado.web
 import tornado.httpserver 
 import tornado.ioloop 

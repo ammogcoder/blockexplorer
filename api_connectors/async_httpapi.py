@@ -2,6 +2,8 @@
 Created on 24.04.2014
 
 @author: pat
+
+Distributed under the MIT License, see accompanying file LICENSE.txt
 '''
 
 import urllib
