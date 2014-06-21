@@ -1,8 +1,4 @@
 '''
-Created on 29.05.2014
-
-@author: pat
-
 Distributed under the MIT License, see accompanying file LICENSE.txt
 '''
 import base64

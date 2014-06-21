@@ -1,8 +1,4 @@
 '''
-Created on 24.04.2014
-
-@author: pat
-
 Distributed under the MIT License, see accompanying file LICENSE.txt
 '''
 
@@ -13,7 +9,7 @@ import tornado.httpclient
 
 
 class AHttpApi():
-    def __init__(self, baseurl='http://nxtchn.org:7890'):
+    def __init__(self, baseurl='http://localhost:7890'):
         self.base_url = baseurl
         self.http_client = tornado.httpclient.AsyncHTTPClient()
     

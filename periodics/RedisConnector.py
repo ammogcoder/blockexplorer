@@ -1,8 +1,4 @@
 '''
-Created on 28.05.2014
-
-@author: pat
-
 Distributed under the MIT License, see accompanying file LICENSE.txt
 '''
 import redis
