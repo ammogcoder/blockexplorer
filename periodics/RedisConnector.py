@@ -15,7 +15,7 @@ class RedisConnector():
     refresh_after = 25
     counter = 0
     counter2 = 0
-    nemesis = datetime.datetime(2014,5,25)
+    nemesis = datetime.datetime(2014,6,25)
         
     @classmethod  
     @tornado.gen.coroutine
