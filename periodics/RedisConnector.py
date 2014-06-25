@@ -41,6 +41,9 @@ class RedisConnector():
                     self.counter += 1
             block['signer'] = hash_converter.convert_to_address(block['signer'])
             
+            for tx in block["transactions"]:
+                tx['signer'] = hash_converter.convert_to_address(tx['signer'])
+            
             blockdatetime = datetime.timedelta(seconds=int(block['timestamp']))
             block['timestamp'] = str(self.nemesis + blockdatetime)
             
