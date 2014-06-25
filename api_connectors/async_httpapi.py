@@ -33,7 +33,7 @@ class AHttpApi():
     
     def getblocksafter(self, height):
         data = json.dumps({'height': height})
-        return self._postrequest('/chain/blocks-after/', data)
+        return self._postrequest('/chain/local-blocks-after/', data)
     
     def getaccount(self, id):
         return self._getrequest('account/get?%s', address=id)
