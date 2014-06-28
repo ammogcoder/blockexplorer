@@ -51,7 +51,7 @@ class FromToBlocksHandler(BaseHandler):
 		hto = int(self.get_argument('to', 0))
 		page = int(self.get_argument('page', 0))
 		redis_client = RedisConnector.RedisConnector.redis_client
-		blocks_per_page = int(super(FromToBlocksHandlerTemp, self).get_parser().get("api", "blocks_per_page"))
+		blocks_per_page = int(super(FromToBlocksHandler, self).get_parser().get("api", "blocks_per_page"))
 		
 		if page != 0:
 			blocks_per_page -= 2
