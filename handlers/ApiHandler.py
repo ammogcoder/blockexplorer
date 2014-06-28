@@ -43,11 +43,6 @@ class TransfersHandler(BaseHandler):
 		self.write(response.body)
 		self.finish()
 		
-class AllBlocksHandler(BaseHandler):
-	
-	def get(self):
-		redis_client = RedisConnector.RedisConnector.redis_client	
-		self.write(redis_client.zrange('blocks', 0, 49, 'desc'))
 
 class FromToBlocksHandler(BaseHandler):
 	
@@ -56,9 +51,7 @@ class FromToBlocksHandler(BaseHandler):
 		hto = int(self.get_argument('to', 0))
 		page = int(self.get_argument('page', 0))
 		redis_client = RedisConnector.RedisConnector.redis_client
-		
-		#settings
-		blocks_per_page = 25
+		blocks_per_page = int(super(FromToBlocksHandlerTemp, self).get_parser().get("api", "blocks_per_page"))
 		
 		if page != 0:
 			blocks_per_page -= 2
@@ -94,11 +87,7 @@ class FromToBlocksHandlerTemp(BaseHandler):
 		hto = int(self.get_argument('to', 0))
 		page = int(self.get_argument('page', 0))
 		redis_client = RedisConnector.RedisConnector.redis_client
-		
-		#settings
-		max_req = 100
-		chunks = 10
-		blocks_per_page = 25
+		blocks_per_page = int(super(FromToBlocksHandlerTemp, self).get_parser().get("api", "blocks_per_page"))
 		
 		if page != 0:
 			blocks_per_page -= 2

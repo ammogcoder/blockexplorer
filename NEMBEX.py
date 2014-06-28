@@ -8,15 +8,12 @@ import tornado.ioloop
 import tornado.options
 import tornado.locale 
 import os.path
-
+from ConfigParser import SafeConfigParser
 from tornado.options import define, options
 
-
-from handlers.NembexHandler import NembexHandler
 from handlers.ApiHandler import FromToBlocksHandlerTemp
 
 #apis
-from handlers.ApiHandler import AllBlocksHandler
 from handlers.ApiHandler import BlockAfterHandler
 from handlers.ApiHandler import LastBlockHandler
 from handlers.ApiHandler import AccountHandler
@@ -26,10 +23,10 @@ from handlers.ApiHandler import FromToBlocksHandler
 #sockets
 from handlers.SocketHandler import LatestBlockSocket
 
-#periodical
-from periodics import RedisConnector
+parser = SafeConfigParser()
+parser.read("settings.INI")
 
-define("port", default=8000, help="run on the given port", type=int)
+define("port", default=parser.get("blockexplorer", "port"), help="run on the given port", type=int)
 
 if __name__ == '__main__': 
 
@@ -58,7 +55,7 @@ if __name__ == '__main__':
     app = tornado.web.Application(
         [
         #main page stuff
-         (r'/', NembexHandler),
+         (r'/', FromToBlocksHandlerTemp),
          (r'/blocks', FromToBlocksHandlerTemp),
                  
          #apis
@@ -66,7 +63,6 @@ if __name__ == '__main__':
          (r'/api/last-block', LastBlockHandler),
          (r'/api/account', AccountHandler), 
          (r'/api/transfers', TransfersHandler),
-         (r'/api/recentblocks', AllBlocksHandler),
          (r'/api/blocks', FromToBlocksHandler),
          
          #sockets
