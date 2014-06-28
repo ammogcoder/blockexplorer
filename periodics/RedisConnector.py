@@ -48,4 +48,4 @@ class RedisConnector():
             block['timestamp'] = str(self.nemesis + blockdatetime)
             
             self.redis_client.zadd('blocks', block['height'], tornado.escape.json_encode(block))
-            self.redis_client.publish('block_channel', block)
+            self.redis_client.publish('block_channel', tornado.escape.json_encode(block))

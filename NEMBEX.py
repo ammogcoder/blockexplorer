@@ -86,7 +86,7 @@ if __name__ == '__main__':
     
     #shedule periodics
     #RedisConnector.RedisConnector.redis_client.flushdb()
-    redisupdater = tornado.ioloop.PeriodicCallback(RedisConnector.RedisConnector.update_redischain, 15000)
-    redisupdater.start()
+    #redisupdater = tornado.ioloop.PeriodicCallback(RedisConnector.RedisConnector.update_redischain, 15000)
+    #redisupdater.start()
     
     tornado.ioloop.IOLoop.instance().start()
