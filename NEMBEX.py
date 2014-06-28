@@ -82,11 +82,7 @@ if __name__ == '__main__':
     tornado.locale.load_translations(translationsPath)    
     
     server = tornado.httpserver.HTTPServer(app, xheaders=True) 
-    server.listen(options.port) 
-    
-    #shedule periodics
-    #RedisConnector.RedisConnector.redis_client.flushdb()
-    #redisupdater = tornado.ioloop.PeriodicCallback(RedisConnector.RedisConnector.update_redischain, 15000)
-    #redisupdater.start()
+    server.bind(options.port)
+    server.start()
     
     tornado.ioloop.IOLoop.instance().start()
