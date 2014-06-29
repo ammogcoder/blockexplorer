@@ -32,7 +32,6 @@ class RedisConnector():
         else:
             height = int(self.redis_client.zrange('blocks', 0, 2, 'desc', 'withscores')[0][1])
             if self.counter >= self.refresh_after:
-                print "reindexing"
                 self.redis_client.zremrangebyscore('blocks', height-self.refresh_after, height)
                 height -= self.refresh_after
                 self.counter = 0
@@ -57,3 +56,4 @@ class RedisConnector():
                 self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
             if self.counter2 == self.refresh_after:
                 self.reindexing = False
+                self.counter2 = 0
