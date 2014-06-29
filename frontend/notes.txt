@@ -1,0 +1,41 @@
+hello
+
+this is the 1st version of the NEM BE.
+the feauters that are implemente are
+
+design:
+	for desktop computers normal screen sizes
+	with 2 look & feel colors
+	
+	note on color (L&F):
+	you can change the color by change the body class from green to blue
+	or the opposite
+	
+	this could also be implemented as a feature for the users
+	to change the L&F by themselves and use what is best for them.
+	
+	
+blocks:
+	navigation by click on link in the bottom
+	navigation by arrows left right keybord short cuts
+
+	dyinamic blocks updates trough socket connection on the 1st page
+
+note on navigation:
+	navigation works by keeping 
+	internal page counter which means that 
+	refreshing the page will reload the page with display of last 
+	25 blocks
+	
+	as well curretnly is not possible to use browser's 
+	back and forward buttons to switch between pages.
+	
+	if there is need this can be changed by using 
+	on page links to store history and therefore the browser's prevoise and next button should work. 
+
+to be done:
+
+	styling:
+		change the serch box to be like in the given design exmples
+		add responsive behaviour to the page 
+	
