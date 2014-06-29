@@ -8,13 +8,18 @@ import datetime
 from api_connectors import async_httpapi
 from handlers import SocketHandler
 from toolbox import hash_converter
+from ConfigParser import SafeConfigParser
 
 
 class RedisConnector():
+    parser = SafeConfigParser()
+    parser.read("settings.INI")
+    
     redis_client = redis.StrictRedis(host='localhost', port=6379, db=12)
-    refresh_after = 25
+    refresh_after = int(parser.get("api", "blocks_to_reindex"))
     counter = 0
     counter2 = 0
+    reindexing = False
     nemesis = datetime.datetime(2014,6,25)
         
     @classmethod  
@@ -27,18 +32,19 @@ class RedisConnector():
         else:
             height = int(self.redis_client.zrange('blocks', 0, 2, 'desc', 'withscores')[0][1])
             if self.counter >= self.refresh_after:
+                print "reindexing"
                 self.redis_client.zremrangebyscore('blocks', height-self.refresh_after, height)
                 height -= self.refresh_after
                 self.counter = 0
-                self.counter2 = 0
+                self.reindexing = True
         response = yield api.getblocksafter(height)
         
         for block in json.loads(response.body)['data']:            
-            if height != 1:
-                if self.counter2 < self.refresh_after:
-                    self.counter2 += 1
-                else:    
-                    self.counter += 1
+            if self.counter < self.refresh_after and not self.reindexing:
+                self.counter += 1
+            else:
+                self.counter2 += 1
+                
             block['signer'] = hash_converter.convert_to_address(block['signer'])
             
             for tx in block["transactions"]:
@@ -46,6 +52,8 @@ class RedisConnector():
             
             blockdatetime = datetime.timedelta(seconds=int(block['timestamp']))
             block['timestamp'] = str(self.nemesis + blockdatetime)
-            
             self.redis_client.zadd('blocks', block['height'], tornado.escape.json_encode(block))
-            self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
+            if not self.reindexing:
+                self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
+            if self.counter2 == self.refresh_after:
+                self.reindexing = False
