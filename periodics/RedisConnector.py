@@ -5,6 +5,7 @@ import redis
 import tornado.gen
 import ujson as json
 import datetime
+import zlib
 from api_connectors import async_httpapi
 from handlers import SocketHandler
 from toolbox import hash_converter
@@ -38,12 +39,14 @@ class RedisConnector():
                 self.reindexing = True
         response = yield api.getblocksafter(height)
         
-        for block in json.loads(response.body)['data']:            
+        for metablock in json.loads(response.body)['data']:            
             if self.counter < self.refresh_after and not self.reindexing:
                 self.counter += 1
             else:
                 self.counter2 += 1
-                
+                            
+            block = metablock['block']
+            block['hash'] = metablock['meta']['hash']['data']    
             block['signer'] = hash_converter.convert_to_address(block['signer'])
             
             for tx in block["transactions"]:
@@ -51,7 +54,9 @@ class RedisConnector():
             
             blockdatetime = datetime.timedelta(seconds=int(block['timestamp']))
             block['timestamp'] = str(self.nemesis + blockdatetime)
+            
             self.redis_client.zadd('blocks', block['height'], tornado.escape.json_encode(block))
+            
             if not self.reindexing:
                 self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
             if self.counter2 == self.refresh_after:
