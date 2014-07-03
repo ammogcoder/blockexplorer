@@ -76,7 +76,39 @@ class FromToBlocksHandler(BaseHandler):
 		blocks = [json.loads(b) for b in blocks]
 		blocks = json.dumps({"data":blocks})						
 		self.write(blocks)
+	
+class FromToTxHandler(BaseHandler):
+	
+	def get(self):
+		page = int(self.get_argument('page', 0))
+		redis_client = RedisConnector.RedisConnector.redis_client
+		blocks_per_page = int(super(FromToTxHandler, self).get_parser().get("api", "blocks_per_page"))
+		
+		if page != 0:
+			blocks_per_page -= 2
+			start = 0 
+			if page > 1:
+				start = blocks_per_page*(page-1)
+			end = start + blocks_per_page + 1
+			txs = redis_client.zrange('tx', start, end, 'desc')
+		else:
+			txs = redis_client.zrange('tx', 0, blocks_per_page-1, 'desc')
+			#txs.reverse()
 				
+		txs = [json.loads(tx) for tx in txs]
+		txs = json.dumps({"data":txs})						
+		self.write(txs)
+
+
+
+
+
+
+
+
+
+
+
 #temp crap
 class AllBlocksHandlerTemp(BaseHandler):
 	

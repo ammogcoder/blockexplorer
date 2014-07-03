@@ -49,19 +49,27 @@ class RedisConnector():
             block = metablock['block']
             block['hash'] = base64.binascii.hexlify(metablock['meta']['hash']['data'])    
             block['signer'] = hash_converter.convert_to_address(block['signer'])
+            blockdatetime = datetime.timedelta(seconds=int(block['timestamp']))
+            block['timestamp'] = str(self.nemesis + blockdatetime)
             
             for tx in block['transactions']:
                 tx['signer'] = hash_converter.convert_to_address(tx['signer'])
-            
-            blockdatetime = datetime.timedelta(seconds=int(block['timestamp']))
-            block['timestamp'] = str(self.nemesis + blockdatetime)
+                txdatetime = datetime.timedelta(seconds=int(tx['timestamp']))
+                timestamps_seconds = tx['timestamp']
+                tx['timestamp'] = str(self.nemesis + txdatetime)
+                tx['block'] = block['height']
+                
+                #save tx in redis
+                self.redis_client.zadd('tx', timestamps_seconds, tornado.escape.json_encode(tx))
+                #self.redis_client.set(block['hash'], tornado.escape.json_encode(block))
+                if not self.reindexing:
+                    self.redis_client.publish('tx_channel', tornado.escape.json_encode(tx))
             
             #save blocks in redis
             self.redis_client.zadd('blocks', block['height'], tornado.escape.json_encode(block))
             self.redis_client.set(block['hash'], tornado.escape.json_encode(block))
             
-            #save tx in redis
-            #TODO
+            
             
             if not self.reindexing:
                 self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
