@@ -19,6 +19,7 @@ from handlers.ApiHandler import LastBlockHandler
 from handlers.ApiHandler import AccountHandler
 from handlers.ApiHandler import TransfersHandler
 from handlers.ApiHandler import FromToBlocksHandler
+from handlers.ApiHandler import SearchBlockByHashHandler
 
 #sockets
 from handlers.SocketHandler import LatestBlockSocket
@@ -64,6 +65,7 @@ if __name__ == '__main__':
          (r'/api/account', AccountHandler), 
          (r'/api/transfers', TransfersHandler),
          (r'/api/blocks', FromToBlocksHandler),
+         (r'/api/block', SearchBlockByHashHandler),
          
          #sockets
          (r'/socket/last-block', LatestBlockSocket),

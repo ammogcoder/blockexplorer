@@ -24,6 +24,13 @@ class LastBlockHandler(BaseHandler):
 	def get(self):
 		redis_client = RedisConnector.RedisConnector.redis_client
 		self.write(redis_client.zrange('blocks', 0, 2, 'desc')[0])
+		
+class SearchBlockByHashHandler(BaseHandler):
+	
+	def get(self):
+		redis_client = RedisConnector.RedisConnector.redis_client
+		hash = self.get_argument('hash')
+		self.write(redis_client.get(hash))
 
 class AccountHandler(BaseHandler):
 	
