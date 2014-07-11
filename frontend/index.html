@@ -8,53 +8,92 @@
 <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css" />
 <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,600,400italic&subset=latin,cyrillic-ext,latin-ext,cyrillic' rel='stylesheet' type='text/css' />
 <script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="js/jquery.animate-colors-min.js"></script>
 <script type="text/javascript" src="js/HTMLRenderer.js"></script>
 <script type="text/javascript" src="js/nem-be.js"></script>
 
-<template id="block">
+<template id="blocks">
 	<table>
-	<tr>
-		<td>{height}</td>
-		<td>{timestamp}</td>
-		<td>{transactions}</td>
-		<td>{type} / {version}</td>
-		<td>{signer}</td>
-	</tr>
-	<tr>
-		<td colspan="6" class="sig"><strong>sig:</strong> {signature}</td>
-	</tr>
+	<thead>
+		<tr>
+			<th>Height</th>
+			<th>Timestamp</th>
+			<th>Trans.</th>
+			<th>Type / Version</th>
+			<th>Signer</th>
+		</tr>	
+	</thead>
+	<tbody>
+		<tr>
+			<td>{height}</td>
+			<td>{timestamp}</td>
+			<td>{transactions}</td>
+			<td>{type} / {version}</td>
+			<td>{signer}</td>
+		</tr>
+		<tr>
+			<td colspan="6" class="sig"><strong>hash:</strong> {hash}</td>
+		</tr>
+	</tbody>
 	</table>
-</template>	
-	
-<template id="json_data" style="display:none;">
-<!-- place holder for test data -->
 </template>
+<template id="tx">
+	<table>
+	<thead>
+		<tr>
+			<th>Amount / Fee</th>
+			<th>Timestamp</th>
+			<th>Block</th>
+			<th>Deadline</th>
+			<th>Recipient / Signer</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>{amount}<br />{fee}</td>
+			<td>{timestamp}</td>
+			<td>{block}</td>
+			<td>{deadline}</td>
+			<td>
+				{recipient}<br />
+				{signer}
+			</td>
+		</tr>
+		<tr>
+			<td colspan="5" class="sig"><strong>signature:</strong> {signature}</td>
+		</tr>
+	</tbody>
+	</table>
+</template>
+	
+<template id="json_data" style="display:none;"></template>
 
 </head>
-<body class="green">
+<body class="blue">
 
 <div class="container">
-<div class="left_sidebar">
-  
+<ul>
+
+<li class="left_sidebar">  
     <div class="logo"><a href="/"><img src="img/NEM-BE-logo.png" alt="NEM Blockchain Explorer" /></a></div>
     <nav>
 	<ul class="left_menu">
-		<li class="selected"><a href="/">home</a></li>
+		<li class="selected"><a href="/#blocks">home (blocks)</a></li>
+		<li><a href="/#tx">transactions</a></li>
 		<li><a href="/">statistic</a></li>
 		<li><a href="/">assets</a></li>
 		<li><a href="/">market</a></li>
 	</ul>
     </nav>
-    
-</div>
-<div class="main">
+</li>
 
+<li class="main">
 	<div class="srch">
-	<i class="fa fa-search"></i>
-	<span>
+		<i class="fa fa-search"></i>
 		<input type="text" value="" placeholder="Search for anything"/>
-	</span>
 	</div>
+	<div style="clear:both"></div>
+	
 	<div id="top_nav">
 	<ul class="main_nav">
    		<li><a href="/">overall</a></li>
@@ -64,8 +103,8 @@
 	</div>
 
 	<div id="main_data">
-	<table class="tbl blocks">
-		<thead >
+	<table id="tbl" class="blocks">
+		<thead>
 		<!--tr>
 			<th>Transaction ID</th>
 			<th>Timestamp</th>
@@ -74,13 +113,6 @@
 			<th>Receiver</th>
 			<th>Status</th>
 		</tr-->
-		<tr>
-			<th>Height</th>
-			<th>Timestamp</th>
-			<th>Trans.</th>
-			<th>Type / Version</th>
-			<th>Signer / Signature</th>
-		</tr>	
 		</thead>
 		<tbody></tbody>
 		<tfoot>
@@ -96,7 +128,8 @@
 	</table>
 	</div>
 
-</div>
+</li>
+</ul>
 </div>
 
 <!--textarea id="jdata"></textarea-->
