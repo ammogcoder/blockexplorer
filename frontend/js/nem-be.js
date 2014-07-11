@@ -1,7 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.0.1
- (alpha)
+@version	:	0.0.2 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -18,31 +17,99 @@
 	/api/blocks?page=1 (last 25).
 	/api/blocks?page=2 (25 before page 1)
 	/api/blocks?from=1&to=100 will give you block 1 to 100
-	/socket/last-block is a websocket that will pop the latest block when it's harvested. 	
+	/socket/last-block is a websocket that will pop the latest block when it's harvested.
+	/api/block?hash=...
+	
 */
 
 // global variables
-var g_htrndr = null;	// global HTML renderer object
-var g_currpage = 1;		// current display page index (1 = defult page) 
-var g_running = false;	// bool flag used to disable multiple data display actions on keyboard shortcuts
-var g_web_sock = null;	// global web socket reference
+var g_htrndr	= null;		// global HTML renderer object
+var g_section	= "blocks";	// currently displayed page section (default = blocks)
+var g_currpage	= 1;		// current display page index (1 = defult page) 
+var g_running	= false;	// bool flag used to disable multiple data display actions on keyboard shortcuts
+var g_web_sock	= null;		// global web socket reference
 
 var g_socket_link 	= "ws://92.222.0.105:8000/socket/last-block";
 var g_api_link 		= "/api/blocks"; // local url for testing
 // g_api_link = "http://92.222.0.105:8000/api/blocks"; // remote url
 //	"/data/data.json"; //local url for testing with static json data
 
-$(document).ready(function () {
+var g_api_links		= {
+	"blocks":	"/api/blocks",
+	"tx"	:	"/api/tx"
+};
 
+
+var g_socket_links 	= {
+	"blocks": "ws://92.222.0.105:8000/socket/last-block",
+	"tx"	: "ws://92.222.0.105:8000/socket/last-tx"	
+};
+
+
+$(document).ready(function () {
+	
 	initNavigation();
+	setPageSection();
+	showData();
+	g_web_sock = connectSocket(g_socket_link);
+	
+/* temp test code for manual socket testing
+	$(".logo a").click(function(evt) {
+			evt.preventDefault();
+			var data = $("#json_data").html();
+			updateData(data);
+	});
+*/
+
+});
+
+
+$(window).on('beforeunload',function(evt){
+	if (! g_web_sock) return;
+	g_web_sock.close();
+});
+
+
+$(window).on('hashchange',function(evt){
+	setPageSection();
 	showData();
 	g_web_sock = connectSocket(g_socket_link);
 });
 
+/*
+$(window).unload(function () {
+	if (! g_web_sock) return;
+	g_web_sock.close();
+});
+*/
+
+function setPageSection() {
+	
+	var hash = document.location.hash;
+	if (! hash || hash.length <= 1) g_section = "blocks";
+	else g_section = hash.substring(1);
+	
+	// close the socket connection if is already open
+	if (g_web_sock != null) g_web_sock.close();
+	
+	// reset the page index to 1
+	g_currpage = 1;
+
+	g_api_link = g_api_links[g_section];
+	g_socket_link = g_socket_links[g_section];
+	
+	//set selected menu link
+	$(".selected").removeClass("selected");
+	$("a[href='/#" + g_section + "']").parent("li").addClass("selected");
+	
+	$("#tbl").attr("class","");
+	$("#tbl").addClass(g_section);
+}
+
 
 function initNavigation() {
 	
-	$(".tbl tfoot a").click(function(evt) {
+	$("#tbl tfoot a").click(function(evt) {
 		
 		evt.preventDefault();
 		var index = $(this).data('page');
@@ -64,8 +131,6 @@ function initNavigation() {
 	
 	// init keybeord arrow navigation shortcuts
 	$(document).keyup(function(evt) {
-		
-		//var out = evt.which + ", " + g_running
 		
 		evt.preventDefault();
 		if (g_running) return;
@@ -109,11 +174,18 @@ function renderData(data) {
 	var blocks = data['data'];
 	
 	// load the html tamplate
-	var tbl = $($("#block").html());
+	//var tbl = $($("#blocks").html());
+	var tbl = $($("#" + g_section).html());
+	var header = tbl.find("thead").html();
 	var tmpl = tbl.find("tbody").html();
 	
-	var rend = new HTMLRenderer(tmpl);
-	g_htrndr = rend;
+	//$("#tbl").
+	$("#tbl thead").html(header);
+	
+	if (g_htrndr == null)
+		g_htrndr = new HTMLRenderer(tmpl);
+	else 		
+		g_htrndr.setTemplate(tmpl);
 	
 	// implement custom functionality in render function
 	/*
@@ -126,8 +198,10 @@ function renderData(data) {
 	*/
 	
 	// add formatter functions for specific data value
-	rend.addFormatter("transactions", 'fmtTrans');
-	rend.addFormatter("timestamp", 'fmtDateTime');
+	g_htrndr.addFormatter("transactions", 'fmtTrans');
+	g_htrndr.addFormatter("timestamp", 'fmtDateTime');
+	g_htrndr.addFormatter("amount", 'fmtNemValue');
+	g_htrndr.addFormatter("fee", 'fmtNemValue');	
 	
 	// render the html
 	var html = "";
@@ -136,11 +210,11 @@ function renderData(data) {
 	for (var i = 0;i < n;i++) {
 		
 		var block = blocks[i];
-		html += rend.render(block);
+		html += g_htrndr.render(block);
 		//break;
 	}
 	
-	$(".tbl tbody").html(html);
+	$("#tbl tbody").html(html);
 	leftResize(500);
 }
 
@@ -183,8 +257,22 @@ function loadData(page) {
 }
 
 
+function fmtNemValue(key,data) {
+	var o = data[key];
+	if (! o) return "0.000000";
+	
+	o = "" + o;
+	var pos = o.length - 6;
+	
+	o = o.substring(0,pos) + "." + o.substring(pos);
+	if (o.indexOf('.') === 0) o = '0' + o;
+	return o;
+}
+
+
 function fmtTrans(key,data) {
 	var o = data[key];
+	if (! o) return 0;
 	return o.length;
 }
 
@@ -216,16 +304,36 @@ function getData(data) {
 }
 
 
-function updateBlocks(data) {
-	
+/*
+function _updateData(data) {
+
 	if (typeof data === "string") data = JSON.parse(data);
 
 	var html = $(g_htrndr.render(data)).hide();
-	
-	$(".tbl tbody tr:eq(0)").before(html);
+
+	$("#tbl tbody tr:eq(0)").before(html);
 	html.show(750);
-	$(".tbl tbody tr:gt(-3)").remove();
+	$("#tbl tbody tr:gt(-3)").remove();
 	leftResize(750);
+}
+*/
+
+function updateData(data) {
+	if (typeof data === "string") data = JSON.parse(data);
+
+	var html = $(g_htrndr.render(data)).hide();
+	html.addClass("newdata");
+
+	$("#tbl tbody tr:eq(0)").before(html);
+		
+	html.show(500).delay(250).animate({backgroundColor: '#f7f7f7'},1000);	
+	setTimeout(function() { 
+		html.removeClass("newdata");
+		html.removeAttr("style");
+	},2500);
+	
+	$("#tbl tbody tr:gt(-3)").remove();
+	leftResize(750);	
 }
 
 
@@ -249,7 +357,7 @@ function connectSocket(url) {
 	    	//showMsg(evt.data);
 	    	try {
 	    		// update only if last 25 block are displayed
-	    		if (g_currpage == 1) updateBlocks(evt.data);
+	    		if (g_currpage == 1) updateData(evt.data);
 	    	}catch(ex) {
 	    		showErr(ex.message);
 	    	}
@@ -281,7 +389,7 @@ function showErr(msg) {
 
 
 function leftResize(time) {
-	
+	return;
 	setTimeout(function() {
 		var h = $(document).height();
 		$(".left_sidebar").height(h);
