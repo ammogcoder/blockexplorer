@@ -20,6 +20,7 @@ from handlers.ApiHandler import AccountHandler
 from handlers.ApiHandler import TransfersHandler
 from handlers.ApiHandler import FromToBlocksHandler
 from handlers.ApiHandler import SearchBlockByHashHandler
+from handlers.ApiHandler import SearchTxByHashHandler
 from handlers.ApiHandler import FromToTxHandler
 
 #sockets
@@ -58,8 +59,8 @@ if __name__ == '__main__':
     app = tornado.web.Application(
         [
         #main page stuff
-         (r'/', FromToBlocksHandlerTemp),
-         (r'/blocks', FromToBlocksHandlerTemp),
+        #(r'/', FromToBlocksHandlerTemp),
+        #(r'/blocks', FromToBlocksHandlerTemp),
                  
          #apis
          (r'/api/block-after', BlockAfterHandler),
@@ -68,7 +69,8 @@ if __name__ == '__main__':
          (r'/api/transfers', TransfersHandler),
          (r'/api/blocks', FromToBlocksHandler),
          (r'/api/block', SearchBlockByHashHandler),
-         (r'/api/tx', FromToTxHandler),
+         (r'/api/txs', FromToTxHandler),
+         (r'/api/tx', SearchTxByHashHandler),
          
          #sockets
          (r'/socket/last-block', LatestBlockSocket),
@@ -84,7 +86,7 @@ if __name__ == '__main__':
     tornado.locale.load_translations(translationsPath)    
     
     server = tornado.httpserver.HTTPServer(app, xheaders=True) 
-    server.bind(options.port)
+    server.bind(options.port, '127.0.0.1')
     server.start()
     
     tornado.ioloop.IOLoop.instance().start()

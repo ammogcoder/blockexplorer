@@ -31,6 +31,12 @@ class SearchBlockByHashHandler(BaseHandler):
 		redis_client = RedisConnector.RedisConnector.redis_client
 		hash = self.get_argument('hash')
 		self.write(redis_client.get(hash))
+		
+class SearchTxByHashHandler(BaseHandler):
+	def get(self):
+		redis_client = RedisConnector.RedisConnector.redis_client
+		hash = self.get_argument('hash')
+		self.write(redis_client.get(hash))
 
 class AccountHandler(BaseHandler):
 	

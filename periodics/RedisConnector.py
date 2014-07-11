@@ -5,8 +5,10 @@ import redis
 import tornado.gen
 import ujson as json
 import datetime
+import time
 import zlib
 import base64
+import traceback
 from api_connectors import async_httpapi
 from handlers import SocketHandler
 from toolbox import hash_converter
@@ -22,7 +24,6 @@ class RedisConnector():
     counter = 0
     counter2 = 0
     reindexing = False
-    nemesis = datetime.datetime(2014,6,25)
         
     @classmethod  
     @tornado.gen.coroutine
@@ -40,36 +41,28 @@ class RedisConnector():
                 self.reindexing = True
         response = yield api.getblocksafter(height)
         
-        for metablock in json.loads(response.body)['data']:            
+        for block in json.loads(response.body)['data']:
             if self.counter < self.refresh_after and not self.reindexing:
                 self.counter += 1
             else:
                 self.counter2 += 1
-                            
-            block = metablock['block']
-            block['hash'] = base64.binascii.hexlify(metablock['meta']['hash']['data'])    
-            block['signer'] = hash_converter.convert_to_address(block['signer'])
-            blockdatetime = datetime.timedelta(seconds=int(block['timestamp']))
-            block['timestamp'] = str(self.nemesis + blockdatetime)
             
-            for tx in block['transactions']:
-                tx['signer'] = hash_converter.convert_to_address(tx['signer'])
-                txdatetime = datetime.timedelta(seconds=int(tx['timestamp']))
+            block['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(block['timestamp']/1000))
+            
+            for tx in block['txes']:
                 timestamps_seconds = tx['timestamp']
-                tx['timestamp'] = str(self.nemesis + txdatetime)
+                tx['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(tx['timestamp']/1000))
                 tx['block'] = block['height']
                 
                 #save tx in redis
                 self.redis_client.zadd('tx', timestamps_seconds, tornado.escape.json_encode(tx))
-                #self.redis_client.set(block['hash'], tornado.escape.json_encode(block))
+                self.redis_client.set(tx['hash'], tornado.escape.json_encode(block))
                 if not self.reindexing:
                     self.redis_client.publish('tx_channel', tornado.escape.json_encode(tx))
             
             #save blocks in redis
             self.redis_client.zadd('blocks', block['height'], tornado.escape.json_encode(block))
             self.redis_client.set(block['hash'], tornado.escape.json_encode(block))
-            
-            
             
             if not self.reindexing:
                 self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
