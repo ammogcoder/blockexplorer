@@ -39,3 +39,25 @@ to be done:
 		change the serch box to be like in the given design exmples
 		add responsive behaviour to the page 
 	
+
+version 0.0.2 (alpha) changes:
+
+styling:
+	styled the top search box to resabme the style from the example picture
+	changed the green color scheme by inverting the green colors to be more readable
+	
+	
+js code:
+	implemented the tx menu functionality and display
+	some js code refactoring was done
+	removed the left column resize from the script
+
+html code:
+	added another template section for the tx display table
+	
+
+ Note:
+	the display of the NEM BE could be messed up in older browser versions expecialiy < IE 10
+	due to removal of the lef column resize from the js and usage of  css3 styling which is not supported in older
+	browsers
+
