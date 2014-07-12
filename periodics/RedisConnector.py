@@ -4,11 +4,7 @@ Distributed under the MIT License, see accompanying file LICENSE.txt
 import redis
 import tornado.gen
 import ujson as json
-import datetime
 import time
-import zlib
-import base64
-import traceback
 from api_connectors import async_httpapi
 from handlers import SocketHandler
 from toolbox import hash_converter
@@ -52,12 +48,14 @@ class RedisConnector():
             for tx in block['txes']:
                 timestamps_seconds = tx['timestamp']
                 tx['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(tx['timestamp']/1000))
+                tx['timestamp_unix'] = timestamps_seconds
                 tx['block'] = block['height']
                 
                 #save tx in redis
                 self.redis_client.zadd('tx', timestamps_seconds, tornado.escape.json_encode(tx))
                 self.redis_client.set(tx['hash'], tornado.escape.json_encode(block))
                 if not self.reindexing:
+                    #send tx over socket
                     self.redis_client.publish('tx_channel', tornado.escape.json_encode(tx))
             
             #save blocks in redis
@@ -65,6 +63,7 @@ class RedisConnector():
             self.redis_client.set(block['hash'], tornado.escape.json_encode(block))
             
             if not self.reindexing:
+                #send tx over socket
                 self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
             if self.counter2 == self.refresh_after:
                 self.reindexing = False

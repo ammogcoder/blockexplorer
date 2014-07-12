@@ -13,7 +13,6 @@ from ConfigParser import SafeConfigParser
 from tornado.options import define, options
 
 #api
-from handlers.ApiHandler import FromToBlocksHandlerTemp
 from handlers.ApiHandler import BlockAfterHandler
 from handlers.ApiHandler import LastBlockHandler
 from handlers.ApiHandler import AccountHandler
@@ -22,6 +21,7 @@ from handlers.ApiHandler import FromToBlocksHandler
 from handlers.ApiHandler import SearchBlockByHashHandler
 from handlers.ApiHandler import SearchTxByHashHandler
 from handlers.ApiHandler import FromToTxHandler
+from handlers.ApiHandler import BlockChartHandler
 
 #sockets
 from handlers.SocketHandler import LatestBlockSocket
@@ -68,6 +68,7 @@ if __name__ == '__main__':
          (r'/api/account', AccountHandler), 
          (r'/api/transfers', TransfersHandler),
          (r'/api/blocks', FromToBlocksHandler),
+         (r'/api/blocks/times', BlockChartHandler),
          (r'/api/block', SearchBlockByHashHandler),
          (r'/api/txs', FromToTxHandler),
          (r'/api/tx', SearchTxByHashHandler),
