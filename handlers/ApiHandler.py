@@ -119,3 +119,25 @@ class BlockChartHandler(BaseHandler):
 			delta = timea - timeb
 			times.insert(0, delta)
 		self.write(json.dumps({'blocktimes':times}))
+
+class HarvesterStatsHandler(BaseHandler):
+	
+	def get(self):
+		redis_client = RedisConnector.RedisConnector.redis_client
+		sortby = self.get_argument('sortby', '')
+		result = {'top10': []}
+		
+		if sortby in ('blocks', ''):
+			harvesters = redis_client.zrange('harvesters', 0, 9, 'desc', 'WITHSCORES')
+			for harvester in harvesters:
+				fees = redis_client.zscore('fees_earned', harvester[0])
+				result['top10'].append({'address': harvester[0], 'blocks': int(harvester[1]), 'fees': int(fees)})
+		
+		elif sortby == 'fees':
+			harvesters = redis_client.zrange('fees_earned', 0, 9, 'desc', 'WITHSCORES')
+			for harvester in harvesters:
+				blocks = redis_client.zscore('harvesters', harvester[0])
+				result['top10'].append({'address': harvester[0], 'blocks': int(blocks), 'fees': int(harvester[1])})
+		
+		self.write(json.dumps(result))
+			
