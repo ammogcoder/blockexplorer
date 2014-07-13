@@ -19,8 +19,7 @@
 			<th>Height</th>
 			<th>Timestamp</th>
 			<th>Trans.</th>
-			<th>Type / Version</th>
-			<th>Signer</th>
+			<th>Harvester</th>
 		</tr>	
 	</thead>
 	<tbody>
@@ -28,8 +27,7 @@
 			<td>{height}</td>
 			<td>{timestamp}</td>
 			<td>{transactions}</td>
-			<td>{type} / {version}</td>
-			<td>{signer}</td>
+			<td>{harvester}</td>
 		</tr>
 		<tr>
 			<td colspan="6" class="sig"><strong>hash:</strong> {hash}</td>
@@ -44,8 +42,7 @@
 			<th>Amount / Fee</th>
 			<th>Timestamp</th>
 			<th>Block</th>
-			<th>Deadline</th>
-			<th>Recipient / Signer</th>
+			<th>Recipient / Sender</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -53,14 +50,13 @@
 			<td>{amount}<br />{fee}</td>
 			<td>{timestamp}</td>
 			<td>{block}</td>
-			<td>{deadline}</td>
 			<td>
 				{recipient}<br />
-				{signer}
+				{sender}
 			</td>
 		</tr>
 		<tr>
-			<td colspan="5" class="sig"><strong>signature:</strong> {signature}</td>
+			<td colspan="5" class="sig"><strong>Hash:</strong> {hash}</td>
 		</tr>
 	</tbody>
 	</table>

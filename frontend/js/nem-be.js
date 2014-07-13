@@ -29,20 +29,20 @@ var g_currpage	= 1;		// current display page index (1 = defult page)
 var g_running	= false;	// bool flag used to disable multiple data display actions on keyboard shortcuts
 var g_web_sock	= null;		// global web socket reference
 
-var g_socket_link 	= "ws://92.222.0.105:8000/socket/last-block";
+var g_socket_link 	= "ws://92.222.0.105/socket/last-block";
 var g_api_link 		= "/api/blocks"; // local url for testing
 // g_api_link = "http://92.222.0.105:8000/api/blocks"; // remote url
 //	"/data/data.json"; //local url for testing with static json data
 
 var g_api_links		= {
 	"blocks":	"/api/blocks",
-	"tx"	:	"/api/tx"
+	"tx"	:	"/api/txs"
 };
 
 
 var g_socket_links 	= {
-	"blocks": "ws://92.222.0.105:8000/socket/last-block",
-	"tx"	: "ws://92.222.0.105:8000/socket/last-tx"	
+	"blocks": "ws://92.222.0.105/socket/last-block",
+	"tx"	: "ws://92.222.0.105/socket/last-tx"	
 };
 
 
