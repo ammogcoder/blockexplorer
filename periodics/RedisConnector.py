@@ -43,12 +43,12 @@ class RedisConnector():
             else:
                 self.counter2 += 1
             
+            block['timestamp_unix'] = block['timestamp']
             block['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(block['timestamp']/1000))
             
             for tx in block['txes']:
                 timestamps_seconds = tx['timestamp']
                 tx['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(tx['timestamp']/1000))
-                tx['timestamp_unix'] = timestamps_seconds
                 tx['block'] = block['height']
                 
                 #save tx in redis
