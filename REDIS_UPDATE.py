@@ -49,7 +49,7 @@ if __name__ == '__main__':
     )
     
     server = tornado.httpserver.HTTPServer(app, xheaders=True) 
-    server.listen(options.port) 
+    server.listen(options.port, '127.0.0.1') 
     
     #shedule periodics
     redisupdater = tornado.ioloop.PeriodicCallback(RedisConnector.RedisConnector.update_redischain, int(parser.get("redis", "redis_update_interval")))
