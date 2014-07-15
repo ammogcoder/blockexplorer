@@ -1,6 +1,6 @@
 /*
 @name		:	HTMLRenderer
-@version	:	0.0.1
+@version	:	0.0.2
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -28,6 +28,7 @@ function HTMLRenderer(tmpl) {
 		var html = _html_tmpl;		
 		var rex = RegExp("\\{\\w+\\}","gi");
 		var plc = html.match(rex); // find palce holders in template example: {variable_name}
+		if (! plc) return html;
 		var n = plc.length;
 		
 		for (var i = 0;i < n;i++) {
