@@ -61,3 +61,20 @@ html code:
 	due to removal of the lef column resize from the js and usage of  css3 styling which is not supported in older
 	browsers
 
+
+version 0.0.3 (alpha) changes:
+
+
+html code:
+	added template section for the stats display
+	added templete section for the search results
+	added message box on top of the page
+	
+js code:
+	adapted the js data handling to the new server side BE NIS output
+	implemented the search functionality in the searach box by block/tx hash value 
+	implemented error message box 
+	implemented rought stats page display + sorting of top 10 by clicking the table header
+	
+	removed 1 bug from the HTMLRenderer object
+
