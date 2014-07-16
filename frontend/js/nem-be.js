@@ -1,6 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.0.3 (alpha)
+@version	:	0.0.4 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -34,6 +34,7 @@ var g_section	= "blocks";	// currently displayed page section (default = blocks)
 var g_currpage	= 1;		// current display page index (1 = defult page) 
 var g_running	= false;	// bool flag used to disable multiple data display actions on keyboard shortcuts
 var g_web_sock	= null;		// global web socket reference
+var g_chart		= null;		// global chart reference (block times chart)
 
 var g_socket_link 	= "ws://chain.nem.ninja/socket/last-block";
 var g_api_link 		= "/api/blocks"; // local url for testing
@@ -51,6 +52,34 @@ var g_socket_links 	= {
 	"blocks": "ws://chain.nem.ninja/socket/last-block",
 	"tx"	: "ws://chain.nem.ninja/socket/last-tx"	
 };
+
+
+var g_chart_data = {
+	labels : [],
+	datasets : [
+		{
+			label : "Block times",
+            fillColor: "rgba(220,220,220,0.2)",
+            strokeColor: "rgba(220,220,220,1)",
+            pointColor: "rgba(220,220,220,1)",
+            pointStrokeColor: "#fff",
+            pointHighlightFill: "#fff",
+            pointHighlightStroke: "rgba(220,220,220,1)",
+			data : []
+		},
+		{
+			label : "Avg. block time",
+            fillColor: "rgba(151,87,205,0.2)",
+            strokeColor: "rgba(151,87,205,1)",
+            pointColor: "rgba(151,87,205,1)",
+            pointStrokeColor: "#fff",
+            pointHighlightFill: "#fff",
+            pointHighlightStroke: "rgba(151,187,205,1)",
+			data : []
+		}
+	]
+};
+
 
 
 $(document).ready(function () {
@@ -115,6 +144,7 @@ $(window).unload(function () {
 function setPageSection() {
 	
 	$("#block_info").hide();
+	$("#chart_info").hide();
 	
 	var hash = document.location.hash;
 	if (! hash || hash.length <= 1) g_section = "blocks";
@@ -268,28 +298,67 @@ function showStats() {
 	// load and display last 30 block times
 	$.get("/api/stats/blocktimes").done(function(res) {
 		//alert(res);
-		try {
+		//try {
 			json = JSON.parse(res);
-			var html = "<h2>Block times:</h2>";
-			//alert(JSON.stringify(json));
 			var data = json['blocktimes'];
-			for (var i = 0;i < data.length;i++) {
-				html += data[i] + "; "; 
-			}
+			showChart(data);
 			
-			html += "<br /><h2>Top 10 Harvesters:</h2>";
-			$("#block_info").html(html);
-			$("#block_info").show();
-			
+			/*
 		} catch(e) {
 			showErr(e.message);
 		}
+		*/
 		
 	}).fail(function(xhr, ajaxOptions, thrownError) {
 		alert(xhr.status);
 		alert(thrownError);
 	});	
+	
+}
 
+
+function showChart(data) {
+
+	var tot_time = 0;
+	var nblocks = data.length;
+	
+	// fill initialize char data with block times
+	g_chart_data.labels = new Array();
+	for (var i = 0;i < nblocks;i++) {
+		g_chart_data.labels.push(i+1);
+		tot_time += data[i];
+	}
+	
+	g_chart_data.datasets[0].data = data;
+	
+	// calculate avg. block time
+	var avg = tot_time / nblocks;
+	
+	for (var i = 0;i < nblocks;i++)
+		g_chart_data.datasets[1].data.push(avg);
+	
+	
+	var ctx = $("#canvas").get(0).getContext("2d");
+	
+	if (g_chart != null) {
+		
+		g_chart.datasets[0].data = g_chart_data.datasets[0].data;
+		g_chart.datasets[1].data = g_chart_data.datasets[1].data;
+		g_chart.update();
+		$("#chart_info").show();
+		return;
+	}
+	
+	var chart = new Chart(ctx).Line(g_chart_data, {
+		animation	: false,
+		responsive 	: false,
+		bezierCurve : false,
+		datasetFill : false,
+		pointDot	: false,
+		pointDotRadius	: 2
+	});	
+	
+	$("#chart_info").show();
 }
 
 
