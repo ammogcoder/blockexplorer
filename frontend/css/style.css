@@ -445,3 +445,20 @@ td.sig {
 
 #tbl.infodata tbody td > ul li.sig {font-size:8pt;}
 /*#tbl {display:none;}*/
+
+#chart_info {
+	display:none;
+	text-align: left;
+	padding:10px;	
+}
+#chart_info h2 {
+	margin:0px;
+
+}
+#chart_info #canvas {
+	background-color:#F7F8E0; 
+	padding:3px;
+}
+
+.block_time { color: rgb(220,220,220); }
+.avg_block_time { color: rgb(151,87,205); }
