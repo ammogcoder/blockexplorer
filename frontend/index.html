@@ -11,6 +11,7 @@
 <script type="text/javascript" src="js/jquery.animate-colors-min.js"></script>
 <script type="text/javascript" src="js/HTMLRenderer.js"></script>
 <script type="text/javascript" src="js/nem-be.js"></script>
+<script type="text/javascript" src="js/Chart.min.js"></script>
 
 <template id="blocks">
 	<table>
@@ -160,6 +161,18 @@
 	<div id="main_data">
 	
 	<div id="block_info"></div>
+	
+	<div id="chart_info">
+		<h2><h2>Block times:</h2>
+		<i class="fa fa-square block_time"></i> Block time
+		&nbsp;
+		<i class="fa fa-square avg_block_time"></i> Average block time
+		
+		<canvas id="canvas" width="846" height="350"></canvas>
+		<br />
+		<br />
+		<h2>Top 10 Harvesters:</h2>
+	</div>
 	
 	<table id="tbl" class="blocks">
 		<thead></thead>
