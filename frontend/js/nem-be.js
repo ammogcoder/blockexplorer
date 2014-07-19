@@ -1,6 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.0.2 (alpha)
+@version	:	0.0.4 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -12,6 +12,7 @@
 @notes		:
 	alright - for now the api works again.
 	http://92.222.0.105:8000
+	http://chain.nem.ninja
 	/api/blocks will give you last 25 blocks
 	You can use page to display 25 at a time
 	/api/blocks?page=1 (last 25).
@@ -19,39 +20,79 @@
 	/api/blocks?from=1&to=100 will give you block 1 to 100
 	/socket/last-block is a websocket that will pop the latest block when it's harvested.
 	/api/block?hash=...
-	
+	New calls for stats: 
+		/api/stats/blocktimes - will give the last 30 blocktimes
+		/api/stats/harvesters - will give the top10 harvesters. 
+		By default you get thoe ones with the most harvested blocks.
+		You can use ?sortby=fees to get the ones with the most earnings.	
 */
 
 // global variables
 var g_htrndr	= null;		// global HTML renderer object
+var g_inforndr	= null;		// global HTML block information renderer
 var g_section	= "blocks";	// currently displayed page section (default = blocks)
 var g_currpage	= 1;		// current display page index (1 = defult page) 
 var g_running	= false;	// bool flag used to disable multiple data display actions on keyboard shortcuts
 var g_web_sock	= null;		// global web socket reference
+var g_chart		= null;		// global chart reference (block times chart)
 
-var g_socket_link 	= "ws://92.222.0.105/socket/last-block";
+var g_socket_link 	= "ws://chain.nem.ninja/socket/last-block";
 var g_api_link 		= "/api/blocks"; // local url for testing
-// g_api_link = "http://92.222.0.105:8000/api/blocks"; // remote url
+// g_api_link = "http://chain.nem.ninja/api/blocks"; // remote url
 //	"/data/data.json"; //local url for testing with static json data
 
 var g_api_links		= {
 	"blocks":	"/api/blocks",
-	"tx"	:	"/api/txs"
+	"tx"	:	"/api/txs",
+	"stats" :	"/api/stats/harvesters"
 };
 
 
 var g_socket_links 	= {
-	"blocks": "ws://92.222.0.105/socket/last-block",
-	"tx"	: "ws://92.222.0.105/socket/last-tx"	
+	"blocks": "ws://chain.nem.ninja/socket/last-block",
+	"tx"	: "ws://chain.nem.ninja/socket/last-tx"	
 };
+
+
+var g_chart_data = {
+	labels : [],
+	datasets : [
+		{
+			label : "Block times",
+            fillColor: "rgba(220,220,220,0.2)",
+            strokeColor: "rgba(220,220,220,1)",
+            pointColor: "rgba(220,220,220,1)",
+            pointStrokeColor: "#fff",
+            pointHighlightFill: "#fff",
+            pointHighlightStroke: "rgba(220,220,220,1)",
+			data : []
+		},
+		{
+			label : "Avg. block time",
+            fillColor: "rgba(151,87,205,0.2)",
+            strokeColor: "rgba(151,87,205,1)",
+            pointColor: "rgba(151,87,205,1)",
+            pointStrokeColor: "#fff",
+            pointHighlightFill: "#fff",
+            pointHighlightStroke: "rgba(151,187,205,1)",
+			data : []
+		}
+	]
+};
+
 
 
 $(document).ready(function () {
 	
+	initMsgBox();
+	initSearch();
 	initNavigation();
-	setPageSection();
+	
+	initPage();
+	/*setPageSection();
 	showData();
 	g_web_sock = connectSocket(g_socket_link);
+	*/
 	
 /* temp test code for manual socket testing
 	$(".logo a").click(function(evt) {
@@ -70,11 +111,28 @@ $(window).on('beforeunload',function(evt){
 });
 
 
-$(window).on('hashchange',function(evt){
-	setPageSection();
-	showData();
-	g_web_sock = connectSocket(g_socket_link);
+$(window).on('hashchange',function(evt) {
+	initPage()
 });
+
+
+function initPage() {
+	var hash = setPageSection();
+	
+	switch(hash) {
+		
+	case 'stats':
+		showStats();
+		break;
+		
+	default:
+		showData();
+		g_web_sock = connectSocket(g_socket_link);
+		
+		break;
+	}
+}
+
 
 /*
 $(window).unload(function () {
@@ -84,6 +142,9 @@ $(window).unload(function () {
 */
 
 function setPageSection() {
+	
+	$("#block_info").hide();
+	$("#chart_info").hide();
 	
 	var hash = document.location.hash;
 	if (! hash || hash.length <= 1) g_section = "blocks";
@@ -104,6 +165,34 @@ function setPageSection() {
 	
 	$("#tbl").attr("class","");
 	$("#tbl").addClass(g_section);
+	
+	return g_section;
+}
+
+
+function initMsgBox() {
+	$("#msgbox i").click(function(evt) {
+		$("#msgbox").hide(500);
+	});
+}
+
+
+function initSearch() {
+	// search data validation pattern
+	//var rex = new RegExp("^[a-zA-Z0-9]{10,}$","g");
+	var rex = new RegExp("^[a-fA-F0-9]{15,}$","g");
+	
+	$(".srch input").keyup(function(evt) {
+		
+		if (evt.which != 13) return;
+		if (! rex.test(this.value)) {
+			showErr("Invalid search entry!");
+			return;
+		}
+		showSearchResult(this.value);
+		//showSearchResult("9e231c02266a20ca2a6629bd1f1c9066e846b8233a75b76ca5e155b03a0bdb95");
+	});
+
 }
 
 
@@ -149,6 +238,130 @@ function initNavigation() {
 }
 
 
+function showStats() {
+
+	$("#tbl").attr("class","");
+	$("#tbl").addClass(g_section);	
+	
+	var tbl = $($("#stats").html());
+	var tmpl = tbl.find("tbody").html();
+	
+	if (g_htrndr == null) g_htrndr = new HTMLRenderer();
+	g_htrndr.setTemplate(tmpl);
+	g_htrndr.addFormatter("fees", 'fmtNemValue');	
+	
+	
+	var params = new Object();
+	
+	if (arguments.length == 0) {
+		$("#tbl thead").html(tbl.find("thead").html());
+		$("#tbl thead th").off('click').on('click',function(evt) {
+			evt.preventDefault();
+			var sort = $(this).data('sort');
+			showStats(sort);
+		});
+	}
+	else if (arguments[0] == "BY_FEES") {
+		params["sortby"] = "fees";
+		$("#tbl thead th:eq(2)").removeClass("sortable");
+		$("#tbl thead th:eq(1)").addClass("sortable");
+	}
+	else {
+		$("#tbl thead th:eq(1)").removeClass("sortable");
+		$("#tbl thead th:eq(2)").addClass("sortable");
+	}
+
+	
+	// load and display top 10 harvesters
+	$.get(g_api_link,params).done(function(res) {
+		//alert(res);
+		try {
+			json = JSON.parse(res);
+			var html = "";
+			//alert(JSON.stringify(json));
+			var data = json['top10'];
+			for (var i = 0;i < data.length;i++) {
+				html += g_htrndr.render(data[i]);
+			}
+			
+			$("#tbl tbody").html(html);
+			
+		} catch(e) {
+			showErr(e.message);
+		}
+		
+	}).fail(function(xhr, ajaxOptions, thrownError) {
+		alert(xhr.status);
+		alert(thrownError);
+	});
+	
+	// load and display last 30 block times
+	$.get("/api/stats/blocktimes").done(function(res) {
+		//alert(res);
+		//try {
+			json = JSON.parse(res);
+			var data = json['blocktimes'];
+			showChart(data);
+			
+			/*
+		} catch(e) {
+			showErr(e.message);
+		}
+		*/
+		
+	}).fail(function(xhr, ajaxOptions, thrownError) {
+		alert(xhr.status);
+		alert(thrownError);
+	});	
+	
+}
+
+
+function showChart(data) {
+
+	var tot_time = 0;
+	var nblocks = data.length;
+	
+	// fill initialize char data with block times
+	g_chart_data.labels = new Array();
+	for (var i = 0;i < nblocks;i++) {
+		g_chart_data.labels.push(i+1);
+		tot_time += data[i];
+	}
+	
+	g_chart_data.datasets[0].data = data;
+	
+	// calculate avg. block time
+	var avg = tot_time / nblocks;
+	
+	for (var i = 0;i < nblocks;i++)
+		g_chart_data.datasets[1].data.push(avg);
+	
+	
+	var ctx = $("#canvas").get(0).getContext("2d");
+	
+	if (g_chart != null) {
+		
+		g_chart.datasets[0].data = g_chart_data.datasets[0].data;
+		g_chart.datasets[1].data = g_chart_data.datasets[1].data;
+		g_chart.update();
+		$("#chart_info").show();
+		return;
+	}
+	
+	var chart = new Chart(ctx).Line(g_chart_data, {
+		animation	: false,
+		responsive 	: false,
+		bezierCurve : false,
+		datasetFill : false,
+		pointDot	: false,
+		pointDotRadius	: 2
+	});	
+	
+	$("#chart_info").show();
+}
+
+
 function showData() {
 	
 	var page = 1;
@@ -171,15 +384,20 @@ function showData() {
 
 function renderData(data) {
 	
+	if (! data) {
+		$("#tbl tbody").html("");
+		//$("#tbl").hide();
+		return;
+	}
+	
 	var blocks = data['data'];
+	//var blocks = data['top10'];
 	
 	// load the html tamplate
-	//var tbl = $($("#blocks").html());
 	var tbl = $($("#" + g_section).html());
 	var header = tbl.find("thead").html();
 	var tmpl = tbl.find("tbody").html();
 	
-	//$("#tbl").
 	$("#tbl thead").html(header);
 	
 	if (g_htrndr == null)
@@ -198,7 +416,7 @@ function renderData(data) {
 	*/
 	
 	// add formatter functions for specific data value
-	g_htrndr.addFormatter("transactions", 'fmtTrans');
+	g_htrndr.addFormatter("txes", 'fmtTrans');
 	g_htrndr.addFormatter("timestamp", 'fmtDateTime');
 	g_htrndr.addFormatter("amount", 'fmtNemValue');
 	g_htrndr.addFormatter("fee", 'fmtNemValue');	
@@ -215,6 +433,7 @@ function renderData(data) {
 	}
 	
 	$("#tbl tbody").html(html);
+	//$("#tbl").show();
 	leftResize(500);
 }
 
@@ -222,19 +441,12 @@ function renderData(data) {
 function loadData(page) {
 
 	var URL = g_api_link;
-	
 	var params = new Object();
 	params['page'] = page;
 	
 	var json = null;
 	$.ajax({
 			async:false,
-			/* test jsonp
-			dataType: "jsonp",
-			jsonp: "callback",
-			contentType: "application/json; charset=utf-8;",
-			jsonpCallback: "getData",
-			crossDomain: true, */
 			method: "GET",
 			data: params,
 			url: URL
@@ -244,6 +456,38 @@ function loadData(page) {
 			json = JSON.parse(res);
 		} catch(e) {
 			showErr(e.message);
+		}
+		
+	}).fail(function(xhr, ajaxOptions, thrownError) {
+		alert(xhr.status);
+		alert(thrownError);
+	}).always(function() {
+		//g_running = false;
+	});
+	
+	return json;
+}
+
+
+function searchData(hash) {
+
+	var URL = "/api/block";
+	var params = new Object();
+	params['hash'] = hash;
+	
+	var json = null;
+	$.ajax({
+			async:false,
+			method: "GET",
+			data: params,
+			url: URL
+	}).done(function(res) {
+		//alert(res);
+		try {
+			json = JSON.parse(res);
+		} catch(e) {
+			showErr("Results not found!");
+			//showErr(e.message);
 		}
 		
 	}).fail(function(xhr, ajaxOptions, thrownError) {
@@ -374,6 +618,46 @@ function connectSocket(url) {
 }
 
 
+function showSearchResult(hash) {
+	
+	g_web_sock.close();
+	var data = searchData(hash);
+	
+	// load the html tamplate
+	var tbl = $($("#info").html());
+	var tmpl = tbl.find("thead td").html();
+		
+	if (g_inforndr == null) g_inforndr = new HTMLRenderer();
+	
+	g_inforndr.setTemplate(tmpl);
+	// add formatter functions for specific data value
+	g_inforndr.addFormatter("txes", 'fmtTrans');
+	g_inforndr.addFormatter("amount", 'fmtNemValue');
+	g_inforndr.addFormatter("fee", 'fmtNemValue');
+	g_inforndr.addFormatter("timestamp", 'fmtDateTime');
+
+	var html = g_inforndr.render(data);
+	
+	$("#block_info").html(html);
+	$("#block_info").show();
+	
+	tmpl = tbl.find("tbody").html();
+	g_inforndr.setTemplate(tmpl);
+	
+	var txlist = data['txes'];
+	var n = txlist.length;
+	
+	html = "";
+	for(var i = 0;i < n;i++) {
+		html += g_inforndr.render(txlist[i]);
+	}
+	
+	$("#tbl tbody").html(html);
+	$("#tbl").attr("class","");
+	$("#tbl").addClass("infodata");
+}
+
+
 function showMsg(data) {
 	return;
 	alert(data);
@@ -383,6 +667,11 @@ function showMsg(data) {
 
 
 function showErr(msg) {
+	if (! msg) return;
+	$("#msgbox").attr("class","");
+	$("#msgbox").addClass("err");
+	$("#msgbox span").html(msg);
+	$("#msgbox").show(500);
 	//alert(msg);
 	//console.log(msg);
 }

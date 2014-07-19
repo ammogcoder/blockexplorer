@@ -6,11 +6,12 @@
 <base href="" />
 <link rel="stylesheet" type="text/css" href="css/style.css" />
 <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css" />
-<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,600,400italic&subset=latin,cyrillic-ext,latin-ext,cyrillic' rel='stylesheet' type='text/css' />
+<link rel='stylesheet' type="text/css" href="css/fonts.googleapis.com.css" />
 <script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
 <script type="text/javascript" src="js/jquery.animate-colors-min.js"></script>
 <script type="text/javascript" src="js/HTMLRenderer.js"></script>
 <script type="text/javascript" src="js/nem-be.js"></script>
+<script type="text/javascript" src="js/Chart.min.js"></script>
 
 <template id="blocks">
 	<table>
@@ -26,11 +27,11 @@
 		<tr>
 			<td>{height}</td>
 			<td>{timestamp}</td>
-			<td>{transactions}</td>
+			<td>{txes}</td>
 			<td>{harvester}</td>
 		</tr>
 		<tr>
-			<td colspan="6" class="sig"><strong>hash:</strong> {hash}</td>
+			<td colspan="4" class="sig"><strong>hash:</strong> {hash}</td>
 		</tr>
 	</tbody>
 	</table>
@@ -42,7 +43,8 @@
 			<th>Amount / Fee</th>
 			<th>Timestamp</th>
 			<th>Block</th>
-			<th>Recipient / Sender</th>
+			<th>Type</th>
+			<th>Sender / Recipient</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -50,14 +52,69 @@
 			<td>{amount}<br />{fee}</td>
 			<td>{timestamp}</td>
 			<td>{block}</td>
-			<td>
-				{recipient}<br />
-				{sender}
-			</td>
+			<td>{type}</td>
+			<td>{recipient}<br />{sender}</td>
 		</tr>
 		<tr>
-			<td colspan="5" class="sig"><strong>Hash:</strong> {hash}</td>
+			<td colspan="5" class="sig">
+				<strong>hash:</strong> {hash}<br />
+				<strong>sig:</strong> {signature}
+			</td>
 		</tr>
+	</tbody>
+	</table>
+</template>
+<template id="stats">
+	<table>
+	<thead>
+		<tr>
+			<th>Address</th>
+			<th data-sort="BY_BLOCKS" ><i class="fa fa-caret-down"></i> Blocks</th>
+			<th data-sort="BY_FEES" class="sortable"><i class="fa fa-caret-down"></i> Fees</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>{address}</td>
+			<td>{blocks}</td>
+			<td class="fee">{fees}</td>
+		</tr>
+	</tbody>
+	</table>
+</template>
+<template id="info">
+	<table>
+	<thead>
+	<tr><td>
+		<h2>Block info:</h2>
+		<ul>
+		<li><label>Height:</label>{height}</li>
+		<li><label>Timestamp:</label>{timestamp}</li>
+		<li><label>Hash:</label>{hash}</li>
+		<li><label>Harvester:</label>{harvester}</li>
+		<li><label>Harvester PK:</label>{harvesterPk}</li>
+		<li><label>Unix Timestamp:</label>{timestamp_unix}</li>
+		<li><label>Transactions:</label>{txes}</li>
+		</ul>
+	</td></tr>
+	</thead>
+	<tbody>
+		<tr><td>
+		<ul>
+		<li><label>Block:</label>{block}</li>
+		<li><label>Timestamp:</label>{timestamp}</li>
+		<li><label>Hash:</label>{hash}</li>
+		<li><label>Sender:</label>{sender}</li>
+		<li><label>Sender PK:</label>{senderPk}</li>
+		<li><label>Recipient:</label>{recipient}</li>
+		<li><label>Amount:</label>{amount}</li>
+		<li><label>Fee:</label>{fee}</li>
+		<li><label>Type:</label>{type}</li>
+		<li><label>Message:</label>{message}</li>
+		<li><label>Message type:</label>{msgType}</li>
+		<li class="sig"><label>Sig:</label>{signature}</li>
+		</ul>    
+		</td></tr>
 	</tbody>
 	</table>
 </template>
@@ -76,7 +133,7 @@
 	<ul class="left_menu">
 		<li class="selected"><a href="/#blocks">home (blocks)</a></li>
 		<li><a href="/#tx">transactions</a></li>
-		<li><a href="/">statistic</a></li>
+		<li><a href="/#stats">statistics</a></li>
 		<li><a href="/">assets</a></li>
 		<li><a href="/">market</a></li>
 	</ul>
@@ -84,9 +141,12 @@
 </li>
 
 <li class="main">
+
+	<div id="msgbox"><div><span>dsad sd asd</span><i class="fa fa-times"></i></div></div>
+	 
 	<div class="srch">
 		<i class="fa fa-search"></i>
-		<input type="text" value="" placeholder="Search for anything"/>
+		<input type="text" value="" placeholder="Search for anything" maxlength="100"/>
 	</div>
 	<div style="clear:both"></div>
 	
@@ -99,17 +159,23 @@
 	</div>
 
 	<div id="main_data">
+	
+	<div id="block_info"></div>
+	
+	<div id="chart_info">
+		<h2><h2>Block times:</h2>
+		<i class="fa fa-square block_time"></i> Block time
+		&nbsp;
+		<i class="fa fa-square avg_block_time"></i> Average block time
+		
+		<canvas id="canvas" width="846" height="350"></canvas>
+		<br />
+		<br />
+		<h2>Top 10 Harvesters:</h2>
+	</div>
+	
 	<table id="tbl" class="blocks">
-		<thead>
-		<!--tr>
-			<th>Transaction ID</th>
-			<th>Timestamp</th>
-			<th>Conf.</th>
-			<th>Sender</th>
-			<th>Receiver</th>
-			<th>Status</th>
-		</tr-->
-		</thead>
+		<thead></thead>
 		<tbody></tbody>
 		<tfoot>
 		<tr>
@@ -122,6 +188,7 @@
 		</tr>
 		</tfoot>
 	</table>
+	
 	</div>
 
 </li>
