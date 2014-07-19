@@ -6,45 +6,37 @@ import json
 import tornadoredis
 import tornado.websocket
 from itertools import izip_longest
-from redis import ConnectionError
 from handlers.BaseHandler import BaseHandler
-from api_connectors import async_httpapi
-from periodics import RedisConnector
 
 class BlockAfterHandler(BaseHandler):
 	
 	@tornado.gen.coroutine
 	def get(self):
-		api = async_httpapi.AHttpApi()
-		response = yield api.getblocksafter(int(self.get_argument('height')))
+		response = yield self.api.getblocksafter(int(self.get_argument('height')))
 		self.write(response.body)
 		self.finish()
 		
 class LastBlockHandler(BaseHandler):
 	
 	def get(self):
-		redis_client = RedisConnector.RedisConnector.redis_client
-		self.write(redis_client.zrange('blocks', 0, 2, 'desc')[0])
+		self.write(self.redis_client.zrange('blocks', 0, 2, 'desc')[0])
 		
 class SearchBlockByHashHandler(BaseHandler):
 	
 	def get(self):
-		redis_client = RedisConnector.RedisConnector.redis_client
 		hash = self.get_argument('hash')
-		self.write(redis_client.get(hash))
+		self.write(self.redis_client.get(hash))
 		
 class SearchTxByHashHandler(BaseHandler):
 	def get(self):
-		redis_client = RedisConnector.RedisConnector.redis_client
 		hash = self.get_argument('hash')
-		self.write(redis_client.get(hash))
+		self.write(self.redis_client.get(hash))
 
 class AccountHandler(BaseHandler):
 	
 	@tornado.gen.coroutine
 	def get(self):
-		api = async_httpapi.AHttpApi()
-		response = yield api.getaccount(self.get_argument('address'))
+		response = yield self.api.getaccount(self.get_argument('address'))
 		self.write(response.body)
 		self.finish()
 
@@ -52,8 +44,7 @@ class TransfersHandler(BaseHandler):
 	
 	@tornado.gen.coroutine
 	def get(self):
-		api = async_httpapi.AHttpApi()
-		response = yield api.getalltxforaccount(self.get_argument('address'))
+		response = yield self.api.getalltxforaccount(self.get_argument('address'))
 		self.write(response.body)
 		self.finish()
 		
@@ -64,8 +55,7 @@ class FromToBlocksHandler(BaseHandler):
 		hfrom = int(self.get_argument('from', 0))
 		hto = int(self.get_argument('to', 0))
 		page = int(self.get_argument('page', 0))
-		redis_client = RedisConnector.RedisConnector.redis_client
-		blocks_per_page = int(super(FromToBlocksHandler, self).get_parser().get("api", "blocks_per_page"))
+		blocks_per_page = int(self.parser.get("api", "blocks_per_page"))
 		
 		if page != 0:
 			blocks_per_page -= 2
@@ -73,11 +63,11 @@ class FromToBlocksHandler(BaseHandler):
 			if page > 1:
 				start = blocks_per_page*(page-1)
 			end = start + blocks_per_page + 1
-			blocks = redis_client.zrange('blocks', start, end, 'desc')
+			blocks = self.redis_client.zrange('blocks', start, end, 'desc')
 		elif hfrom == 0 and hto == 0:
-			blocks = redis_client.zrange('blocks', 0, blocks_per_page-1, 'desc')			
+			blocks = self.redis_client.zrange('blocks', 0, blocks_per_page-1, 'desc')			
 		else:
-			blocks = redis_client.zrangebyscore('blocks', hfrom, hto)
+			blocks = self.redis_client.zrangebyscore('blocks', hfrom, hto)
 			blocks.reverse()
 				
 		blocks = [json.loads(b) for b in blocks]
@@ -88,8 +78,7 @@ class FromToTxHandler(BaseHandler):
 	
 	def get(self):
 		page = int(self.get_argument('page', 0))
-		redis_client = RedisConnector.RedisConnector.redis_client
-		blocks_per_page = int(super(FromToTxHandler, self).get_parser().get("api", "blocks_per_page"))
+		blocks_per_page = int(self.parser.get("api", "blocks_per_page"))
 		
 		if page != 0:
 			blocks_per_page -= 2
@@ -97,9 +86,9 @@ class FromToTxHandler(BaseHandler):
 			if page > 1:
 				start = blocks_per_page*(page-1)
 			end = start + blocks_per_page + 1
-			txs = redis_client.zrange('tx', start, end, 'desc')
+			txs = self.redis_client.zrange('tx', start, end, 'desc')
 		else:
-			txs = redis_client.zrange('tx', 0, blocks_per_page-1, 'desc')
+			txs = self.redis_client.zrange('tx', 0, blocks_per_page-1, 'desc')
 			
 				
 		txs = [json.loads(tx) for tx in txs]
@@ -109,8 +98,7 @@ class FromToTxHandler(BaseHandler):
 class BlockChartHandler(BaseHandler):
 	
 	def get(self):
-		redis_client = RedisConnector.RedisConnector.redis_client
-		blocks = redis_client.zrange('blocks', 0, 59, 'desc')
+		blocks = self.redis_client.zrange('blocks', 0, 59, 'desc')
 		times = []
 		for block_pair in izip_longest(*[iter(blocks)]*2):
 			# calc delta and append it to times 
@@ -123,20 +111,19 @@ class BlockChartHandler(BaseHandler):
 class HarvesterStatsHandler(BaseHandler):
 	
 	def get(self):
-		redis_client = RedisConnector.RedisConnector.redis_client
 		sortby = self.get_argument('sortby', '')
 		result = {'top10': []}
 		
 		if sortby in ('blocks', ''):
-			harvesters = redis_client.zrange('harvesters', 0, 9, 'desc', 'WITHSCORES')
+			harvesters = self.redis_client.zrange('harvesters', 0, 9, 'desc', 'WITHSCORES')
 			for harvester in harvesters:
-				fees = redis_client.zscore('fees_earned', harvester[0])
+				fees = self.redis_client.zscore('fees_earned', harvester[0])
 				result['top10'].append({'address': harvester[0], 'blocks': int(harvester[1]), 'fees': int(fees)})
 		
 		elif sortby == 'fees':
-			harvesters = redis_client.zrange('fees_earned', 0, 9, 'desc', 'WITHSCORES')
+			harvesters = self.redis_client.zrange('fees_earned', 0, 9, 'desc', 'WITHSCORES')
 			for harvester in harvesters:
-				blocks = redis_client.zscore('harvesters', harvester[0])
+				blocks = self.redis_client.zscore('harvesters', harvester[0])
 				result['top10'].append({'address': harvester[0], 'blocks': int(blocks), 'fees': int(harvester[1])})
 		
 		self.write(json.dumps(result))
