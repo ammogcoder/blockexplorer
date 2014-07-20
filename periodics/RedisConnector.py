@@ -59,7 +59,7 @@ class RedisConnector():
                     
                     #save tx in redis
                     self.redis_client.zadd('tx', timestamps_seconds, tornado.escape.json_encode(tx))
-                    self.redis_client.set(tx['hash'], tornado.escape.json_encode(block))
+                    self.redis_client.set(tx['hash'], tornado.escape.json_encode(tx))
                     if not self.reindexing:
                         #send tx over socket
                         self.redis_client.publish('tx_channel', tornado.escape.json_encode(tx))
