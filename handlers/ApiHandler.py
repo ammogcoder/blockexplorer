@@ -98,13 +98,14 @@ class FromToTxHandler(BaseHandler):
 class BlockChartHandler(BaseHandler):
 	
 	def get(self):
-		blocks = self.redis_client.zrange('blocks', 0, 59, 'desc')
+		blocks = self.redis_client.zrange('blocks', 0, 120, 'desc')
 		times = []
 		for i in xrange(len(blocks) - 1):
 			timea = json.loads(blocks[i])['timestamp_unix']
 			timeb = json.loads(blocks[i + 1])['timestamp_unix']
 			delta = timea - timeb
 			times.insert(0, delta)
+		print len(times)
 		self.write(json.dumps({'blocktimes':times}))
 
 class HarvesterStatsHandler(BaseHandler):
