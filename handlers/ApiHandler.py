@@ -100,10 +100,9 @@ class BlockChartHandler(BaseHandler):
 	def get(self):
 		blocks = self.redis_client.zrange('blocks', 0, 59, 'desc')
 		times = []
-		for block_pair in izip_longest(*[iter(blocks)]*2):
-			# calc delta and append it to times 
-			timea = json.loads(block_pair[0])['timestamp_unix']
-			timeb = json.loads(block_pair[1])['timestamp_unix']
+		for i in xrange(len(blocks) - 1):
+			timea = json.loads(blocks[i])['timestamp_unix']
+			timeb = json.loads(blocks[i + 1])['timestamp_unix']
 			delta = timea - timeb
 			times.insert(0, delta)
 		self.write(json.dumps({'blocktimes':times}))
