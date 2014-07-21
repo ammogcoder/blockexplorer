@@ -429,7 +429,7 @@ function calcAvgBT(data) {
 	var nblocks = data.length;
 	var n = nblocks / 2;
 	
-	data = data.reverse();
+	//data = data.reverse();
 	
 	var labels = new Array();
 	var avg_per_block = new Array(n);
