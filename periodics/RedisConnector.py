@@ -51,14 +51,14 @@ class RedisConnector():
                 fees_total = 0
                 
                 for tx in block['txes']:
-                    timestamps_seconds = tx['timestamp']
+                    timestamps_unix = tx['timestamp']
                     tx['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(tx['timestamp']/1000))
                     tx['block'] = block['height']
                     
                     fees_total += tx['fee']  
                     
                     #save tx in redis
-                    self.redis_client.zadd('tx', timestamps_seconds, tornado.escape.json_encode(tx))
+                    self.redis_client.zadd('tx', timestamps_unix, tornado.escape.json_encode(tx))
                     self.redis_client.set(tx['hash'], tornado.escape.json_encode(tx))
                     if not self.reindexing:
                         #send tx over socket
