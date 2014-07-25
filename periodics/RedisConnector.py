@@ -64,9 +64,6 @@ class RedisConnector():
                         #send tx over socket
                         self.redis_client.publish('tx_channel', tornado.escape.json_encode(tx))
                 
-                self.redis_client.zincrby('harvesters', block['harvester'], 1.0)
-                self.redis_client.zincrby('fees_earned', block['harvester'], fees_total)
-                
                 #save blocks in redis
                 self.redis_client.zadd('blocks', block['height'], tornado.escape.json_encode(block))
                 self.redis_client.set(block['hash'], tornado.escape.json_encode(block))
@@ -74,6 +71,9 @@ class RedisConnector():
                 if not self.reindexing:
                     #send tx over socket
                     self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
+                    #stats
+                    self.redis_client.zincrby('harvesters', block['harvester'], 1.0)
+                    self.redis_client.zincrby('fees_earned', block['harvester'], fees_total)                
                 if self.counter2 == self.refresh_after:
                     self.reindexing = False
                     self.counter2 = 0
