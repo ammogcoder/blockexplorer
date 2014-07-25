@@ -27,6 +27,9 @@ class LatestSocket(tornado.websocket.WebSocketHandler):
         if self.client.subscribed:
             self.client.unsubscribe(self.channel)
             self.client.disconnect()
+            
+    def check_origin(self, origin):
+        return True
 
 class LatestBlockSocket(LatestSocket):
     channel = 'block_channel'
