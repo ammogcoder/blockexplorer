@@ -28,7 +28,7 @@
 			<td>{height}</td>
 			<td>{timestamp}</td>
 			<td>{txes}</td>
-			<td>{harvester}</td>
+			<td><a href="#" data-account="{harvester}">{harvester}</a></td>
 		</tr>
 		<tr>
 			<td colspan="4" class="sig"><strong>hash:</strong> {hash}</td>
@@ -53,7 +53,7 @@
 			<td>{timestamp}</td>
 			<td>{block}</td>
 			<td>{type}</td>
-			<td>{recipient}<br />{sender}</td>
+			<td><a href="#" data-account="{recipient}" >{recipient}</a><br /><a href="#" data-account="{sender}">{sender}</a></td>
 		</tr>
 		<tr>
 			<td colspan="5" class="sig">
@@ -118,7 +118,60 @@
 	</tbody>
 	</table>
 </template>
-	
+
+<template id="txinfo">
+	<table>
+	<thead>
+	<tr><td>
+	</td></tr>
+	</thead>
+	<tbody>
+		<tr><td>
+		<h2>Transaction info:</h2>		
+		<ul>
+		<li><label>Block:</label>{block}</li>
+		<li><label>Timestamp:</label>{timestamp}</li>
+		<li><label>Hash:</label>{hash}</li>
+		<li><label>Sender:</label>{sender}</li>
+		<li><label>Sender PK:</label>{senderPk}</li>
+		<li><label>Recipient:</label>{recipient}</li>
+		<li><label>Amount:</label>{amount}</li>
+		<li><label>Fee:</label>{fee}</li>
+		<li><label>Type:</label>{type}</li>
+		<li><label>Message:</label>{message}</li>
+		<li><label>Message type:</label>{msgType}</li>
+		</ul>
+		<span class="sig">Sig: {signature}</span>
+		</td></tr>
+	</tbody>
+	</table>
+</template>
+
+<template id="account">
+	<h2>Account info:</h2>		
+	<ul>
+	<li><label>Status:</label>{status}</li>
+	<li><label>Address:</label>{address}</li>
+	<li><label>Balance:</label>{balance}</li>
+	<li><label>Importance:</label>
+		
+		<ul class="importance">
+		<li><b>Score:</b> {score}</li>
+		<!--li>{isSet} </li-->
+		<li><b>Page rank:</b> {page_rank}</li>
+		<li><b>Height:</b> {height}</li>
+		</ul>
+		
+	</li>
+	<li><label>Public Key:</label>{publicKey}</li>
+	<li><label>Label:</label>{label}</li>
+	<li><label>Foraged Blocks:</label>{foragedBlocks}</li>
+	<li><label>Messages:</label>{messages}</li>
+	</ul>
+	<!--span class="sig">{payload} {type}</span-->
+</template>
+
+
 <template id="json_data" style="display:none;"></template>
 
 </head>
@@ -160,15 +213,23 @@
 
 	<div id="main_data">
 	
-	<div id="block_info"></div>
+	<!--div id="block_info"> TO BE REMOVED
+		<h3 title="Close"><i class="fa fa-times"></i></h3>
+		<span></span>
+	</div-->
 	
 	<div id="chart_info">
 		<h2><h2>Block times:</h2>
 		<i class="fa fa-square block_time"></i> Block time
 		&nbsp;
 		<i class="fa fa-square avg_block_time"></i> Average block time
-		
-		<canvas id="canvas" width="846" height="350"></canvas>
+		<div>
+		<i class="fa fa-long-arrow-up"></i> time in seconds
+		<canvas id="canvas" width="846" height="400"></canvas>
+		<div style="text-align:right">
+		Last 60 blocks <i class="fa fa-long-arrow-right"></i>
+		</div>
+		</div>
 		<br />
 		<br />
 		<h2>Top 10 Harvesters:</h2>
@@ -193,6 +254,23 @@
 
 </li>
 </ul>
+</div>
+
+
+<div id="overlay">
+
+	<div class="ocontent">
+		<div id="info_box">
+			<h3 title="Close"><i class="fa fa-times"></i></h3>
+			<div style="clear:both"></div>
+			<span></span>
+			
+			<div id="txes">
+				
+			</div>
+			
+		</div>
+	</div>
 </div>
 
 <!--textarea id="jdata"></textarea-->

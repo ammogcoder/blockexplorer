@@ -1,6 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.0.4 (alpha)
+@version	:	0.0.5 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -11,7 +11,7 @@
 
 @notes		:
 	alright - for now the api works again.
-	http://92.222.0.105:8000
+	http://92.222.0.105
 	http://chain.nem.ninja
 	/api/blocks will give you last 25 blocks
 	You can use page to display 25 at a time
@@ -24,10 +24,14 @@
 		/api/stats/blocktimes - will give the last 30 blocktimes
 		/api/stats/harvesters - will give the top10 harvesters. 
 		By default you get thoe ones with the most harvested blocks.
-		You can use ?sortby=fees to get the ones with the most earnings.	
+		You can use ?sortby=fees to get the ones with the most earnings.
+	
+	/api/account?address=xxx
+	** /api/transfers?address=xxx **
 */
 
 // global variables
+var g_rex		= null;		// global serch validation regexp object
 var g_htrndr	= null;		// global HTML renderer object
 var g_inforndr	= null;		// global HTML block information renderer
 var g_section	= "blocks";	// currently displayed page section (default = blocks)
@@ -86,7 +90,10 @@ $(document).ready(function () {
 	
 	initMsgBox();
 	initSearch();
+	initInfoBox();
+	initInfoLinks();
 	initNavigation();
+	
 	
 	initPage();
 	/*setPageSection();
@@ -143,7 +150,7 @@ $(window).unload(function () {
 
 function setPageSection() {
 	
-	$("#block_info").hide();
+	//$("#block_info").hide();
 	$("#chart_info").hide();
 	
 	var hash = document.location.hash;
@@ -177,20 +184,54 @@ function initMsgBox() {
 }
 
 
+function initInfoBox() {
+	$("#info_box > h3").click(function(evt) {
+		$("#overlay").hide();
+		$("body").removeClass("overlay");
+		//$("#tbl").show();
+	});
+	
+	$("#overlay").click(function(evt) {
+		$("#overlay").hide();
+		$("body").removeClass("overlay");
+		//$("#tbl").show();
+	});
+}
+
+
+function initInfoLinks() {
+	
+	$("#tbl tbody").click(function(evt) {
+		
+		evt.preventDefault();	
+		if (evt.target.tagName != "A") return;	
+		var acc = $(evt.target).data('account');
+		showAccount(acc);
+		
+	});
+	
+}
+
+
 function initSearch() {
 	// search data validation pattern
 	//var rex = new RegExp("^[a-zA-Z0-9]{10,}$","g");
-	var rex = new RegExp("^[a-fA-F0-9]{15,}$","g");
+	if (g_rex == null)
+		g_rex = new RegExp("^[a-fA-F0-9]{15,}$","g");
 	
 	$(".srch input").keyup(function(evt) {
 		
 		if (evt.which != 13) return;
-		if (! rex.test(this.value)) {
+		
+		var val = $.trim(this.value);
+		g_rex.lastIndex = 0;
+		if (! g_rex.test(val)) {
 			showErr("Invalid search entry!");
+			alert(val);
 			return;
 		}
-		showSearchResult(this.value);
-		//showSearchResult("9e231c02266a20ca2a6629bd1f1c9066e846b8233a75b76ca5e155b03a0bdb95");
+		showSearchResult(val);
+		//showSearchResult("04e6da77dcaa7fac14293027583d0da7dd2cfd5c8e49cd7d118cb5075e67dd7a");
 	});
 
 }
@@ -298,16 +339,16 @@ function showStats() {
 	// load and display last 30 block times
 	$.get("/api/stats/blocktimes").done(function(res) {
 		//alert(res);
-		//try {
+		try {
 			json = JSON.parse(res);
 			var data = json['blocktimes'];
 			showChart(data);
 			
-			/*
+
 		} catch(e) {
 			showErr(e.message);
 		}
-		*/
+
 		
 	}).fail(function(xhr, ajaxOptions, thrownError) {
 		alert(xhr.status);
@@ -319,23 +360,39 @@ function showStats() {
 
 function showChart(data) {
 
+	
+	var chart_data = calcAvgBT(data);
+	
+	//alert(chart_data.toSource());
+	
+	g_chart_data.labels = chart_data['lbl'];			// labels 1 - 60 
+	g_chart_data.datasets[0].data = chart_data['tme'];	// block times values
+	g_chart_data.datasets[1].data = chart_data['avg'];	// average block time values
+	
+	/*
 	var tot_time = 0;
 	var nblocks = data.length;
-	
+	var avg_per_block = new Array(nblocks / 2);
+		
 	// fill initialize char data with block times
+	
 	g_chart_data.labels = new Array();
 	for (var i = 0;i < nblocks;i++) {
 		g_chart_data.labels.push(i+1);
+		data[i] = data[i] / 1000;
 		tot_time += data[i];
 	}
 	
 	g_chart_data.datasets[0].data = data;
 	
+	
+	//alert(g_chart_data.datasets[0].data.toSource());
 	// calculate avg. block time
 	var avg = tot_time / nblocks;
 	
 	for (var i = 0;i < nblocks;i++)
 		g_chart_data.datasets[1].data.push(avg);
+	*/
 	
 	
 	var ctx = $("#canvas").get(0).getContext("2d");
@@ -355,10 +412,51 @@ function showChart(data) {
 		bezierCurve : false,
 		datasetFill : false,
 		pointDot	: false,
-		pointDotRadius	: 2
+		pointDotRadius	: 2/*,
+		scaleOverride : true,
+		scaleSteps: 50,
+		scaleLabel : "<%=value%>",
+		scaleStepWidth: 30
+		*/
 	});	
 	
 	$("#chart_info").show();
+}
+
+
+function calcAvgBT(data) {
+	
+	var nblocks = data.length;
+	var n = nblocks / 2;
+	
+	//data = data.reverse();
+	
+	var labels = new Array();
+	var avg_per_block = new Array(n);
+	
+	// convert to all block times to seconds	
+	for (var i = 0;i < nblocks;i++) {
+		data[i] = data[i] / 1000;
+		if (i < n) labels.push(i+1);
+	}
+	
+	n = nblocks / 2;
+	var j = 0;
+	var limit = n + j;
+	
+	// calculate averages for last n blocks
+	for (var i = 0;i < n;i++) {
+
+		j = i;
+		limit = j + n;
+		avg_per_block[j] = 0;
+		
+		for (var j = i;j < limit;j++) avg_per_block[i] += data[j];
+				
+		avg_per_block[i] = avg_per_block[i] / n; 
+	}
+	
+	return { "tme" : data, "lbl" : labels, "avg" : avg_per_block };
 }
 
 
@@ -391,7 +489,6 @@ function renderData(data) {
 	}
 	
 	var blocks = data['data'];
-	//var blocks = data['top10'];
 	
 	// load the html tamplate
 	var tbl = $($("#" + g_section).html());
@@ -404,16 +501,6 @@ function renderData(data) {
 		g_htrndr = new HTMLRenderer(tmpl);
 	else 		
 		g_htrndr.setTemplate(tmpl);
-	
-	// implement custom functionality in render function
-	/*
-	rend.renderItem = function(html,data,key) {
-		var obj = data[key];
-		var plc = key == "transactions" ? obj.length : obj;
-		
-		return html.replace("{" + key + "}",plc);
-	}
-	*/
 	
 	// add formatter functions for specific data value
 	g_htrndr.addFormatter("txes", 'fmtTrans');
@@ -501,6 +588,60 @@ function searchData(hash) {
 }
 
 
+function showAccount(address) {
+	
+	var URL = "/api/account";
+	var params = new Object();
+	params["address"] = address;
+	
+	// /api/account?address=TBLOODZW6W4DUVL4NGAQXHZXFQJLNHPDXHULLHZW
+
+	$.ajax({
+			async	:	true,
+			method	:	"GET",
+			data	: 	params,
+			url		: 	URL
+	}).done(function(res) {
+		//alert(res);
+		try {
+			
+			json = JSON.parse(res);
+			var data = json['account'];
+			data['status'] = json['meta']['status'];
+			data['height'] = data['importance']['height'];
+			data['page_rank'] = data['importance']['page-rank'];
+			data['score'] = data['importance']['score'];
+			
+			
+			if (g_inforndr == null) g_inforndr = new HTMLRenderer();
+			
+			
+			var tmpl = $("#account").html();
+			
+			g_inforndr.setTemplate(tmpl);
+			// add formatter functions for specific data value
+			g_inforndr.addFormatter("messages", 'fmtTrans');
+			g_inforndr.addFormatter("balance", 'fmtNemValue');
+			
+			$("#info_box span").html(g_inforndr.render(data));
+			$("#overlay").show();
+			$("body").addClass("overlay");
+			
+		} catch(e) {
+			showErr("Results not found!");
+			//showErr(e.message);
+		}
+		
+		
+	}).fail(function(xhr, ajaxOptions, thrownError) {
+		alert(xhr.status);
+		alert(thrownError);
+	}).always(function() {
+		//g_running = false;
+	});	
+}
+
+
 function fmtNemValue(key,data) {
 	var o = data[key];
 	if (! o) return "0.000000";
@@ -527,6 +668,9 @@ function fmtDateTime(key,data) {
 
 
 function toLocalDateTime(utc_timestamp) {
+	
+	console.log = utc_timestamp;
+	
 	
 	var datetime = utc_timestamp.split(' ');
 	var dp = datetime[0].split('-');
@@ -623,10 +767,22 @@ function showSearchResult(hash) {
 	g_web_sock.close();
 	var data = searchData(hash);
 	
+	var tbl = null;
+	var tmpl = null;
+	var obj_type = ! data["height"] ? 'tx' : 'block';
+	
+	
 	// load the html tamplate
-	var tbl = $($("#info").html());
-	var tmpl = tbl.find("thead td").html();
-		
+	if (obj_type == 'block') {
+		tbl = $($("#info").html());
+		tmpl = tbl.find("thead td").html();
+	}
+	else {
+		tbl = $($("#txinfo").html());
+		tmpl = tbl.find("tbody td").html();
+		//$("#tbl").hide();
+	}
+	
 	if (g_inforndr == null) g_inforndr = new HTMLRenderer();
 	
 	g_inforndr.setTemplate(tmpl);
@@ -638,10 +794,14 @@ function showSearchResult(hash) {
 
 	var html = g_inforndr.render(data);
 	
-	$("#block_info").html(html);
-	$("#block_info").show();
+	$("body").addClass("overlay");
+	$("#info_box span").html(html);
+	$("#txes").html("");
+	$("#overlay").show();
 	
-	tmpl = tbl.find("tbody").html();
+	if (obj_type != 'block')  return;
+
+	tmpl = tbl.find("tbody tr td").html();
 	g_inforndr.setTemplate(tmpl);
 	
 	var txlist = data['txes'];
@@ -652,9 +812,7 @@ function showSearchResult(hash) {
 		html += g_inforndr.render(txlist[i]);
 	}
 	
-	$("#tbl tbody").html(html);
-	$("#tbl").attr("class","");
-	$("#tbl").addClass("infodata");
+	$("#txes").html(html);
 }
 
 

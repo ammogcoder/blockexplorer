@@ -78,3 +78,24 @@ js code:
 	
 	removed 1 bug from the HTMLRenderer object
 
+
+version 0.0.4 (alpha) changes:
+	added chart display to the stats page
+	
+	
+version 0.0.5 (alpha) changes:
+	
+	html:
+	added anchor link to addresses in display
+	added overlay 
+	
+	css:
+	added overlay css
+	changed blue color scheme (color inversion) for less eye pain :)
+	
+	js code:
+	removed 1 bug related to serach box functionality
+	adapted the data display to the api output
+	changed stats chart display (added labels for each axis,and time display values change in seconds)
+	implemented last 60 blocktimes average calculation
+	implemented overlay display for search results data and account information data
