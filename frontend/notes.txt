@@ -99,3 +99,21 @@ version 0.0.5 (alpha) changes:
 	changed stats chart display (added labels for each axis,and time display values change in seconds)
 	implemented last 60 blocktimes average calculation
 	implemented overlay display for search results data and account information data
+
+
+version 0.0.6 (alpha) changes:
+	
+	html:
+	added anchor link to addresses in display of the stats
+	added options to change the blocks display range in the chart  
+	
+	css:
+	added chart tooltip css
+	added style for the links on the page (address links) 
+	
+	js code:
+	adapted chart data loading to the new API output 
+	added custom chart tooltip with block haight display
+	addet chart option to change the blocks display range in the chart 
+	
+	solved bug related to closing ovarlay dialog
