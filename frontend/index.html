@@ -75,7 +75,7 @@
 	</thead>
 	<tbody>
 		<tr>
-			<td>{address}</td>
+			<td><a href="#" data-account="{address}">{address}</a></td>
 			<td>{blocks}</td>
 			<td class="fee">{fees}</td>
 		</tr>
@@ -213,21 +213,28 @@
 
 	<div id="main_data">
 	
-	<!--div id="block_info"> TO BE REMOVED
-		<h3 title="Close"><i class="fa fa-times"></i></h3>
-		<span></span>
-	</div-->
-	
 	<div id="chart_info">
 		<h2><h2>Block times:</h2>
 		<i class="fa fa-square block_time"></i> Block time
 		&nbsp;
 		<i class="fa fa-square avg_block_time"></i> Average block time
+		
 		<div>
 		<i class="fa fa-long-arrow-up"></i> time in seconds
+		<div id="chart_tool_tip">ds</div>
 		<canvas id="canvas" width="846" height="400"></canvas>
 		<div style="text-align:right">
-		Last 60 blocks <i class="fa fa-long-arrow-right"></i>
+		Last 
+		<select>
+			<option value="1,61"	> 1 - 60</option>
+			<option value="1,31"	> 1 - 30</option>
+			<option value="31,61"	>31 - 60</option>
+			<option value="1,16"	> 1 - 15</option>
+			<option value="16,31"	>16 - 30</option>
+			<option value="31,46"	>31 - 46</option>
+			<option value="46,61"	>46 - 60</option>
+		</select>	 
+		blocks <i class="fa fa-long-arrow-right"></i>
 		</div>
 		</div>
 		<br />
