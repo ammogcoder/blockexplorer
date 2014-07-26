@@ -6,7 +6,6 @@ import tornado.gen
 import ujson as json
 import time
 import traceback
-import os
 from api_connectors import async_httpapi
 from handlers import SocketHandler
 from toolbox import hash_converter
@@ -15,7 +14,7 @@ from ConfigParser import SafeConfigParser
 
 class RedisConnector():
     parser = SafeConfigParser()
-    parser.read(os.path.join(os.path.dirname(os.path.realpath(__file__)),"../settings.INI"))
+    parser.read("settings.INI")
     
     redis_client = redis.StrictRedis(host='localhost', port=6379, db=12)
     refresh_after = int(parser.get("api", "blocks_to_reindex"))

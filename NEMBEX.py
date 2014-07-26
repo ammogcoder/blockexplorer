@@ -30,7 +30,7 @@ from handlers.SocketHandler import LatestBlockSocket
 from handlers.SocketHandler import LatestTxSocket
 
 parser = SafeConfigParser()
-parser.read(os.path.join(os.path.dirname(os.path.realpath(__file__)),"settings.INI"))
+parser.read("settings.INI")
 
 define("port", default=parser.get("blockexplorer", "port"), help="run on the given port", type=int)
 
