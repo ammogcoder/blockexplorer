@@ -1,6 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.0.5 (alpha)
+@version	:	0.0.6 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -28,6 +28,8 @@
 	
 	/api/account?address=xxx
 	** /api/transfers?address=xxx **
+	
+	/api/search?q=...
 */
 
 // global variables
@@ -57,7 +59,7 @@ var g_socket_links 	= {
 	"tx"	: "ws://chain.nem.ninja/socket/last-tx"	
 };
 
-
+var g_chart_calc = null;
 var g_chart_data = {
 	labels : [],
 	datasets : [
@@ -93,7 +95,7 @@ $(document).ready(function () {
 	initInfoBox();
 	initInfoLinks();
 	initNavigation();
-	
+	initChartBlocksSelect();
 	
 	initPage();
 	/*setPageSection();
@@ -192,6 +194,9 @@ function initInfoBox() {
 	});
 	
 	$("#overlay").click(function(evt) {
+			
+		if (evt.target.id != "overlay") return;
+		
 		$("#overlay").hide();
 		$("body").removeClass("overlay");
 		//$("#tbl").show();
@@ -209,7 +214,6 @@ function initInfoLinks() {
 		showAccount(acc);
 		
 	});
-	
 }
 
 
@@ -217,7 +221,7 @@ function initSearch() {
 	// search data validation pattern
 	//var rex = new RegExp("^[a-zA-Z0-9]{10,}$","g");
 	if (g_rex == null)
-		g_rex = new RegExp("^[a-fA-F0-9]{15,}$","g");
+		g_rex = new RegExp("^[a-zA-Z0-9]{15,}$","g");
 	
 	$(".srch input").keyup(function(evt) {
 		
@@ -279,6 +283,33 @@ function initNavigation() {
 }
 
 
+function initChartBlocksSelect() {
+	
+	$("#chart_info select").change(function(evt) {
+		evt.preventDefault();
+		var chart_data = getChartBlockRange(this.value);
+		showChart(chart_data);
+	});
+	
+}
+
+
+function getChartBlockRange(range) {
+
+	var range = range.split(',');
+	range[0] = parseInt(range[0]);
+	range[1] = parseInt(range[1]);
+	
+	var chart_data = $.extend({}, g_chart_calc);
+	
+	chart_data['lbl'] = chart_data['lbl'].slice(range[0]-1,range[1]-1);	// labels 
+	chart_data['tme'] = chart_data['tme'].slice(range[0]-1,range[1]-1);	// block times values
+	chart_data['avg'] = chart_data['avg'].slice(range[0]-1,range[1]-1);
+	
+	return chart_data;
+}
+
+
 function showStats() {
 
 	$("#tbl").attr("class","");
@@ -336,14 +367,18 @@ function showStats() {
 		alert(thrownError);
 	});
 	
+	
+	if (arguments.length > 0) return;
+	
 	// load and display last 30 block times
 	$.get("/api/stats/blocktimes").done(function(res) {
 		//alert(res);
 		try {
 			json = JSON.parse(res);
 			var data = json['blocktimes'];
+			g_chart_calc = calcAvgBT(data);
+			data = getChartBlockRange($("#chart_info select").val());
 			showChart(data);
-			
 
 		} catch(e) {
 			showErr(e.message);
@@ -359,72 +394,100 @@ function showStats() {
 
 
 function showChart(data) {
-
 	
-	var chart_data = calcAvgBT(data);
-	
-	//alert(chart_data.toSource());
+	var chart_data = data;
 	
 	g_chart_data.labels = chart_data['lbl'];			// labels 1 - 60 
 	g_chart_data.datasets[0].data = chart_data['tme'];	// block times values
 	g_chart_data.datasets[1].data = chart_data['avg'];	// average block time values
 	
-	/*
-	var tot_time = 0;
-	var nblocks = data.length;
-	var avg_per_block = new Array(nblocks / 2);
-		
-	// fill initialize char data with block times
-	
-	g_chart_data.labels = new Array();
-	for (var i = 0;i < nblocks;i++) {
-		g_chart_data.labels.push(i+1);
-		data[i] = data[i] / 1000;
-		tot_time += data[i];
-	}
-	
-	g_chart_data.datasets[0].data = data;
-	
-	
-	//alert(g_chart_data.datasets[0].data.toSource());
-	// calculate avg. block time
-	var avg = tot_time / nblocks;
-	
-	for (var i = 0;i < nblocks;i++)
-		g_chart_data.datasets[1].data.push(avg);
-	*/
-	
-	
 	var ctx = $("#canvas").get(0).getContext("2d");
 	
-	if (g_chart != null) {
-		
-		g_chart.datasets[0].data = g_chart_data.datasets[0].data;
-		g_chart.datasets[1].data = g_chart_data.datasets[1].data;
-		g_chart.update();
-		$("#chart_info").show();
-		return;
-	}
-	
-	var chart = new Chart(ctx).Line(g_chart_data, {
+	g_chart = new Chart(ctx).Line(g_chart_data, {
 		animation	: false,
 		responsive 	: false,
 		bezierCurve : false,
 		datasetFill : false,
 		pointDot	: false,
-		pointDotRadius	: 2/*,
+		pointDotRadius	: 2,
+		showTooltips	: false,
+		/*
 		scaleOverride : true,
-		scaleSteps: 50,
+		scaleSteps: 5,
 		scaleLabel : "<%=value%>",
 		scaleStepWidth: 30
 		*/
 	});	
+	g_chart.update();
+	
+	$("#canvas").off('mousemove');
+	$("#canvas").mousemove(function(evt) {
+		showChartTooltip(g_chart,evt,chart_data);
+	});
+	
+	$("#canvas").off('mouseout');
+	$("#canvas").mouseout(function(evt) {
+		$("#chart_tool_tip").hide();
+	});
 	
 	$("#chart_info").show();
+	
+}
+
+
+function showChartTooltip(chart,evt,data) {
+	
+	var group 			= "";
+	var datapoints 		= new Array();
+	var activePoints  	= chart.getPointsAtEvent(evt);
+	
+	// extract last active point for each dataset
+	for (var i = 0;i < activePoints.length;i++) {
+		
+		if (activePoints[i].datasetLabel != group) {
+			//i++;
+			datapoints.push(activePoints[i]);
+			group = activePoints[i].datasetLabel;
+		}
+	}
+	
+	if (! datapoints[0]) {
+		$("#chart_tool_tip").hide();
+		return;
+	}
+	
+	var indx = parseInt(datapoints[0].label) -1;
+	
+	var html = "Block / Height:<br />";
+		html += "<b>" + datapoints[0].label + " / " + data["height"][indx] + "</b><br />";
+	for (var i = 0;i < datapoints.length;i++) {
+		html += " <i class=\"fa fa-square\" style=\"color:" + datapoints[i].fillColor + "\"></i> " + Math.round(datapoints[i].value,2);
+	}
+	
+	var offset = $(evt.target).offset();
+	var posX = (evt.pageX - offset.left) + 30;
+	var posY = (evt.pageY - offset.top) + 30;
+	
+	$("#chart_tool_tip").html(html);
+	$("#chart_tool_tip").css("left",posX + "px");
+	$("#chart_tool_tip").css("top",posY + "px");
+	$("#chart_tool_tip").show();
 }
 
 
 function calcAvgBT(data) {
+	
+	var blocks = data; 
+	var keys = new Array();
+	data = new Array();
+	
+	for (var key in blocks) {
+		keys.push(key);
+		data.push(blocks[key]);
+	}
+
+	keys = keys.reverse();
+	data = data.reverse();	
 	
 	var nblocks = data.length;
 	var n = nblocks / 2;
@@ -437,7 +500,13 @@ function calcAvgBT(data) {
 	// convert to all block times to seconds	
 	for (var i = 0;i < nblocks;i++) {
 		data[i] = data[i] / 1000;
-		if (i < n) labels.push(i+1);
+		if (i < n) {
+			var j = i+1;
+			
+			labels.push(j);
+			//if (j % 5 == 0 || j == 1) labels.push(j);
+			//else labels.push("");
+		}
 	}
 	
 	n = nblocks / 2;
@@ -456,7 +525,7 @@ function calcAvgBT(data) {
 		avg_per_block[i] = avg_per_block[i] / n; 
 	}
 	
-	return { "tme" : data, "lbl" : labels, "avg" : avg_per_block };
+	return { "tme" : data, "lbl" : labels, "avg" : avg_per_block, "height" : keys };
 }
 
 
@@ -558,9 +627,11 @@ function loadData(page) {
 
 function searchData(hash) {
 
-	var URL = "/api/block";
+	//var URL = "/api/block";
+	var URL = "/api/search";
 	var params = new Object();
-	params['hash'] = hash;
+	//params['hash'] = hash;
+	params['q'] = hash;
 	
 	var json = null;
 	$.ajax({
@@ -606,26 +677,8 @@ function showAccount(address) {
 		try {
 			
 			json = JSON.parse(res);
-			var data = json['account'];
-			data['status'] = json['meta']['status'];
-			data['height'] = data['importance']['height'];
-			data['page_rank'] = data['importance']['page-rank'];
-			data['score'] = data['importance']['score'];
-			
-			
-			if (g_inforndr == null) g_inforndr = new HTMLRenderer();
-			
-			
-			var tmpl = $("#account").html();
-			
-			g_inforndr.setTemplate(tmpl);
-			// add formatter functions for specific data value
-			g_inforndr.addFormatter("messages", 'fmtTrans');
-			g_inforndr.addFormatter("balance", 'fmtNemValue');
-			
-			$("#info_box span").html(g_inforndr.render(data));
-			$("#overlay").show();
-			$("body").addClass("overlay");
+			//var data = json['account'];
+			showAccountInfo(json);
 			
 		} catch(e) {
 			showErr("Results not found!");
@@ -640,6 +693,34 @@ function showAccount(address) {
 		//g_running = false;
 	});	
 }
+
+
+function showAccountInfo(data) {
+	
+	var tmpdata = data;
+	
+	data = tmpdata['account'];
+	
+	data['status'] = tmpdata['meta']['status'];
+	data['height'] = data['importance']['height'];
+	data['page_rank'] = data['importance']['page-rank'];
+	data['score'] = data['importance']['score'];
+	
+	if (g_inforndr == null) g_inforndr = new HTMLRenderer();
+	
+	var tmpl = $("#account").html();
+	
+	g_inforndr.setTemplate(tmpl);
+	// add formatter functions for specific data value
+	g_inforndr.addFormatter("messages", 'fmtTrans');
+	g_inforndr.addFormatter("balance", 'fmtNemValue');
+	
+	$("#info_box span").html(g_inforndr.render(data));
+	$("#overlay").show();
+	$("body").addClass("overlay");
+	
+}
+
 
 
 function fmtNemValue(key,data) {
@@ -669,8 +750,8 @@ function fmtDateTime(key,data) {
 
 function toLocalDateTime(utc_timestamp) {
 	
-	console.log = utc_timestamp;
-	
+	//console.log = utc_timestamp;
+	if (! utc_timestamp) return utc_timestamp;
 	
 	var datetime = utc_timestamp.split(' ');
 	var dp = datetime[0].split('-');
@@ -721,7 +802,7 @@ function updateData(data) {
 	},2500);
 	
 	$("#tbl tbody tr:gt(-3)").remove();
-	leftResize(750);	
+	leftResize(750);
 }
 
 
@@ -769,8 +850,19 @@ function showSearchResult(hash) {
 	
 	var tbl = null;
 	var tmpl = null;
-	var obj_type = ! data["height"] ? 'tx' : 'block';
+	//var obj_type = ! data["height"] ? 'tx' : 'block';
+	var obj_type = null;
 	
+	obj_type = (! obj_type) && (! data["block"]) ? null : 'tx';
+	if (obj_type == null) obj_type = (! data["account"]) ? null : 'account';
+	if (obj_type == null) obj_type = (! data["height"])  ? null : 'block';
+	
+	alert(obj_type);	
+	
+	if (obj_type == 'account') {
+		showAccountInfo(data);
+		return;
+	} 
 	
 	// load the html tamplate
 	if (obj_type == 'block') {
@@ -782,6 +874,12 @@ function showSearchResult(hash) {
 		tmpl = tbl.find("tbody td").html();
 		//$("#tbl").hide();
 	}
+	
+	/*
+	json = JSON.parse(res);
+	var data = json['account'];
+	showAccountInfo(data);	
+	*/
 	
 	if (g_inforndr == null) g_inforndr = new HTMLRenderer();
 	
