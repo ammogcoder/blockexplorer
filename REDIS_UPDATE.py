@@ -15,7 +15,7 @@ from tornado.options import define, options
 from periodics import RedisConnector
 
 parser = SafeConfigParser()
-parser.read("settings.INI")
+parser.read(os.path.join(os.path.dirname(os.path.realpath(__file__)),"settings.INI"))
 
 define("port", default=parser.get("redis", "updater_port"), help="run on the given port", type=int)
 
