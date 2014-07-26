@@ -32,6 +32,17 @@ class SearchHandler(BaseHandler):
 			self.write(response.body)
 		else:
 			self.write(self.redis_client.get(searchstring))
+
+class SearchBlockByHashHandler(BaseHandler):
+	
+	def get(self):
+		hash = self.get_argument('hash')
+		self.write(self.redis_client.get(hash))
+		
+class SearchTxByHashHandler(BaseHandler):
+	def get(self):
+		hash = self.get_argument('hash')
+		self.write(self.redis_client.get(hash))
 		
 class AccountHandler(BaseHandler):
 	

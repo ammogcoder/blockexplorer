@@ -18,6 +18,8 @@ from handlers.ApiHandler import LastBlockHandler
 from handlers.ApiHandler import AccountHandler
 from handlers.ApiHandler import TransfersHandler
 from handlers.ApiHandler import FromToBlocksHandler
+from handlers.ApiHandler import SearchBlockByHashHandler
+from handlers.ApiHandler import SearchTxByHashHandler
 from handlers.ApiHandler import SearchHandler
 from handlers.ApiHandler import FromToTxHandler
 from handlers.ApiHandler import BlockChartHandler
@@ -73,6 +75,8 @@ if __name__ == '__main__':
          #txs
          (r'/api/txs', FromToTxHandler),
          #search
+         (r'/api/tx', SearchTxByHashHandler),
+         (r'/api/block', SearchBlockByHashHandler),
          (r'/api/search', SearchHandler),
          #stats
          (r'/api/stats/blocktimes', BlockChartHandler),
