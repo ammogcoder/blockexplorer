@@ -4,6 +4,7 @@ Distributed under the MIT License, see accompanying file LICENSE.txt
 import tornado.gen
 import json
 import tornadoredis
+import re
 import tornado.websocket
 from itertools import izip_longest
 from handlers.BaseHandler import BaseHandler
@@ -21,17 +22,17 @@ class LastBlockHandler(BaseHandler):
 	def get(self):
 		self.write(self.redis_client.zrange('blocks', 0, 2, 'desc')[0])
 		
-class SearchBlockByHashHandler(BaseHandler):
-	
+class SearchHandler(BaseHandler):
+	@tornado.gen.coroutine
 	def get(self):
-		hash = self.get_argument('hash')
-		self.write(self.redis_client.get(hash))
+		searchstring = self.get_argument('q')
+		#decide if address or hash and act accordingly
+		if re.match('T[A-Z0-9]+', searchstring):
+			response = yield self.api.getaccount(searchstring)
+			self.write(response.body)
+		else:
+			self.write(self.redis_client.get(searchstring))
 		
-class SearchTxByHashHandler(BaseHandler):
-	def get(self):
-		hash = self.get_argument('hash')
-		self.write(self.redis_client.get(hash))
-
 class AccountHandler(BaseHandler):
 	
 	@tornado.gen.coroutine

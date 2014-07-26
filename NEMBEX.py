@@ -18,8 +18,7 @@ from handlers.ApiHandler import LastBlockHandler
 from handlers.ApiHandler import AccountHandler
 from handlers.ApiHandler import TransfersHandler
 from handlers.ApiHandler import FromToBlocksHandler
-from handlers.ApiHandler import SearchBlockByHashHandler
-from handlers.ApiHandler import SearchTxByHashHandler
+from handlers.ApiHandler import SearchHandler
 from handlers.ApiHandler import FromToTxHandler
 from handlers.ApiHandler import BlockChartHandler
 from handlers.ApiHandler import HarvesterStatsHandler
@@ -68,13 +67,13 @@ if __name__ == '__main__':
          (r'/api/block-after', BlockAfterHandler),
          (r'/api/last-block', LastBlockHandler),
          (r'/api/blocks', FromToBlocksHandler),
-         (r'/api/block', SearchBlockByHashHandler),
          #account
          (r'/api/account', AccountHandler), 
          (r'/api/transfers', TransfersHandler),
          #txs
          (r'/api/txs', FromToTxHandler),
-         (r'/api/tx', SearchTxByHashHandler),
+         #search
+         (r'/api/search', SearchHandler),
          #stats
          (r'/api/stats/blocktimes', BlockChartHandler),
          (r'/api/stats/harvesters', HarvesterStatsHandler),
