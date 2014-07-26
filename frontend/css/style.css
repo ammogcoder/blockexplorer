@@ -8,7 +8,11 @@ body {
 	background-color:#ECF0F1;
 	margin:0 auto;
 }
-	
+
+
+a { color: #3081C3; text-decoration: none; }
+a:hover { color: darkgreen; text-decoration: underline; }
+
 /* green color scheme */	
 .green .left_sidebar {background-color:#29AD5F;}
 
@@ -425,22 +429,12 @@ td.sig {
 	background-color:#3081c3;
 }
 
-
-#block_info {
-	padding:10px;
-	font-size:8pt;
-}
-
-
-#block_info h2,
-#info_box h2
-{
+#info_box h2 {
 	margin:0px;
 	margin-left:10px;
 	text-align: left;
 }
 
-#block_info h3,
 #info_box h3 {
 	margin:0px;
 	font-size:20pt;
@@ -449,7 +443,6 @@ td.sig {
 	cursor: pointer;
 }
 
-#block_info span > ul,
 #info_box span > ul {
 	list-style-type:none;
 	text-align: left;
@@ -458,7 +451,6 @@ td.sig {
 	white-space: nowrap;
 }
 
-#block_info span > ul label,
 #info_box span > ul label {
 	display:inline-block;
 	width:20%;
@@ -467,8 +459,6 @@ td.sig {
 	text-align: right;
 }
 
-
-#block_info span > ul li.sig,
 #info_box span > ul li.sig {
 	font-size:8pt;
 }
@@ -478,6 +468,7 @@ td.sig {
 }
 
 #chart_info {
+	position: relative;
 	display:none;
 	text-align: left;
 	padding:10px;	
@@ -495,6 +486,17 @@ td.sig {
 #chart_info #canvas {
 	background-color:#F7F8E0; 
 
+}
+
+#chart_info #chart_tool_tip {
+	width: 120px;
+	position: absolute;
+	display: none; /*inline-block;*/
+	z-index: 1;
+	background-color: black;
+	border-radius: 5px;
+	padding: 5px;
+	color: white;
 }
 
 .block_time { color: rgb(220,220,220); }
@@ -538,7 +540,7 @@ body.overlay {
 	background-color: #F7F7F7; 
 	color: #34495E;
 	font-size: 0.8em;
-	padding:10px;a
+	padding:10px;
 }
 
 #overlay .ocontent #txes > ul li label {
@@ -546,7 +548,7 @@ body.overlay {
 	font-weight:bold;
 }
 
-#overlay .ocontent #txes > ul li.sig {font-size:8pt;}
+#overlay .ocontent #txes > ul li.sig { font-size:8pt; }
 
 #overlay .ocontent ul.importance {
 	padding-left: 190px;
