@@ -1,6 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.0.6 (alpha)
+@version	:	0.0.7 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -396,10 +396,11 @@ function showStats() {
 function showChart(data) {
 	
 	var chart_data = data;
-	
+
 	g_chart_data.labels = chart_data['lbl'];			// labels 1 - 60 
 	g_chart_data.datasets[0].data = chart_data['tme'];	// block times values
 	g_chart_data.datasets[1].data = chart_data['avg'];	// average block time values
+	
 	
 	var ctx = $("#canvas").get(0).getContext("2d");
 	
@@ -418,12 +419,20 @@ function showChart(data) {
 		scaleStepWidth: 30
 		*/
 	});	
-	g_chart.update();
+	//g_chart.update();
+
 	
+	$("#canvas").off('click');
+	$("#canvas").click(function(evt) {
+		showChartTooltip(g_chart,evt,chart_data);
+	});
+	
+
 	$("#canvas").off('mousemove');
 	$("#canvas").mousemove(function(evt) {
 		showChartTooltip(g_chart,evt,chart_data);
 	});
+
 	
 	$("#canvas").off('mouseout');
 	$("#canvas").mouseout(function(evt) {
@@ -436,16 +445,16 @@ function showChart(data) {
 
 
 function showChartTooltip(chart,evt,data) {
-	
+
 	var group 			= "";
 	var datapoints 		= new Array();
 	var activePoints  	= chart.getPointsAtEvent(evt);
-	
+
 	// extract last active point for each dataset
 	for (var i = 0;i < activePoints.length;i++) {
 		
 		if (activePoints[i].datasetLabel != group) {
-			//i++;
+			
 			datapoints.push(activePoints[i]);
 			group = activePoints[i].datasetLabel;
 		}
@@ -456,7 +465,8 @@ function showChartTooltip(chart,evt,data) {
 		return;
 	}
 	
-	var indx = parseInt(datapoints[0].label) -1;
+	var indx = data["height"].length - parseInt(datapoints[0].label);
+	//var indx = parseInt(datapoints[0].label)-1;
 	
 	var html = "Block / Height:<br />";
 		html += "<b>" + datapoints[0].label + " / " + data["height"][indx] + "</b><br />";
@@ -478,21 +488,20 @@ function showChartTooltip(chart,evt,data) {
 function calcAvgBT(data) {
 	
 	var blocks = data; 
-	var keys = new Array();
-	data = new Array();
+	var keys = Object.keys(blocks);
+	var len = keys.length;
 	
-	for (var key in blocks) {
-		keys.push(key);
+	data = new Array();
+	keys.sort(sortByBlockHeight);
+	
+	for (var i = 0;i < len;i++) {
+		var key = keys[i];
 		data.push(blocks[key]);
 	}
 
-	keys = keys.reverse();
-	data = data.reverse();	
 	
 	var nblocks = data.length;
 	var n = nblocks / 2;
-	
-	//data = data.reverse();
 	
 	var labels = new Array();
 	var avg_per_block = new Array(n);
@@ -525,7 +534,20 @@ function calcAvgBT(data) {
 		avg_per_block[i] = avg_per_block[i] / n; 
 	}
 	
+	data = data.reverse();
+	labels = labels.reverse();
+	avg_per_block = avg_per_block.reverse();
+	keys = keys.slice(0,avg_per_block.length).reverse();	
+	
 	return { "tme" : data, "lbl" : labels, "avg" : avg_per_block, "height" : keys };
+}
+
+
+function sortByBlockHeight(a,b) {
+	a = parseInt(a);
+	b = parseInt(b);
+	
+	return a > b ? -1 : 1;
 }
 
 
