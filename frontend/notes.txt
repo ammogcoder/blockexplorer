@@ -117,3 +117,11 @@ version 0.0.6 (alpha) changes:
 	addet chart option to change the blocks display range in the chart 
 	
 	solved bug related to closing ovarlay dialog
+
+version 0.0.7 (alpha) changes:	
+	html:
+	- minor change in chart blocks range selection
+	
+	js code:
+	- changed the order of the blocks on axis-x in the chart
+	- solved a block time calculation bug that I have found 
