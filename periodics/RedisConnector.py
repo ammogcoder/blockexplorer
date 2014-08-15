@@ -33,14 +33,14 @@ class RedisConnector():
             
             for block in json.loads(response.body)['data']:
                 
-                block['timestamp_unix'] = block['timestamp']
-                block['timestamp'] = self._calc_timestamp(block['timestamp'])
+                block['timestamp_unix'] = block['timeStamp']
+                block['timestamp'] = self._calc_timestamp(block['timeStamp'])
                 
                 fees_total = 0
                 
                 for tx in block['txes']:
-                    timestamps_unix = tx['timestamp']
-                    tx['timestamp'] = self._calc_timestamp(tx['timestamp'])
+                    timestamps_unix = tx['timeStamp']
+                    tx['timestamp'] = self._calc_timestamp(tx['timeStamp'])
                     tx['block'] = block['height']
                     
                     fees_total += tx['fee']  
