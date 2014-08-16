@@ -111,6 +111,8 @@ class BlockChartHandler(BaseHandler):
 	
 	def get(self):
 		n = int(self.get_argument('lvl', 0))
+		if n > 3:
+			n = 0
 		possibilites = {0:120, 1:240, 2:480, 3:1000}
 		blocks = self.redis_client.zrange('blocks', 0, possibilites[n], 'desc')
 		times = {}
