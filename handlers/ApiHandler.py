@@ -110,7 +110,9 @@ class FromToTxHandler(BaseHandler):
 class BlockChartHandler(BaseHandler):
 	
 	def get(self):
-		blocks = self.redis_client.zrange('blocks', 0, 120, 'desc')
+		n = int(self.get_argument('lvl', 0))
+		possibilites = {0:120, 1:240, 2:480, 3:1000}
+		blocks = self.redis_client.zrange('blocks', 0, possibilites[n], 'desc')
 		times = {}
 		for i in xrange(len(blocks) - 1):
 			blocka = json.loads(blocks[i])
