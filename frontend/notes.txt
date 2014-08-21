@@ -118,6 +118,7 @@ version 0.0.6 (alpha) changes:
 	
 	solved bug related to closing ovarlay dialog
 
+
 version 0.0.7 (alpha) changes:	
 	html:
 	- minor change in chart blocks range selection
@@ -125,3 +126,19 @@ version 0.0.7 (alpha) changes:
 	js code:
 	- changed the order of the blocks on axis-x in the chart
 	- solved a block time calculation bug that I have found 
+
+
+version 0.0.8 (alpha) changes:	
+	html:
+	- removed the chart.js library 
+	- removed parts of html code containgin the canvas for the chart.js library 
+	- added d3.js and dimple.js library for charting 
+	- added range control for seting the display range of the blocks in the chart
+	
+	js code:
+	- removed functions showChartTooltip, sortByBlockHeight 
+	- rewritten functions calcAvgBT, showChart
+	- added renderChart function
+	
+	css:
+	- changes related to the chart_info div container and subelements
