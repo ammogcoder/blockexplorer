@@ -1,4 +1,9 @@
 /*
+@name		:	NEM Blockchain Explorer
+@version	:	0.0.8 (alpha)
+*/
+
+/*
 html, body {
     height:100%;
 }
@@ -469,13 +474,23 @@ td.sig {
 
 #chart_info {
 	position: relative;
-	display:none;
+	/*display:none;*/
 	text-align: left;
 	padding:10px;	
 }
+
 #chart_info h2 {
 	margin:0px;
+}
 
+#chart_info h2.range {
+	text-align:right;
+	font-size:14pt;	
+}
+
+#chart_info h2 input {
+	width:30%;
+	vertical-align: middle;
 }
 
 #chart_info > div {
@@ -484,24 +499,19 @@ td.sig {
 }
 
 #chart_info #canvas {
-	background-color:#F7F8E0; 
-
+	height: 610px;
+	background-image: url('../img/spinner.gif');
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: 25%;
 }
 
-#chart_info #chart_tool_tip {
-	width: 120px;
-	position: absolute;
-	display: none; /*inline-block;*/
-	z-index: 1;
-	background-color: black;
-	border-radius: 5px;
-	padding: 5px;
-	color: white;
+#chart_info #canvas h3 {
+	color: rgb(128,128,128);
+	text-align: center;
+	padding-top: 50%;
+	font-size: 20pt;
 }
-
-.block_time { color: rgb(220,220,220); }
-.avg_block_time { color: rgb(151,87,205); }
-
 
 body.overlay {
 	overflow:hidden;
