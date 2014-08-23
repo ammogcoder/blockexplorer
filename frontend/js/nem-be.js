@@ -1,6 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.0.8 (alpha)
+@version	:	0.0.9 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -465,13 +465,14 @@ function calcAvgBT(data) {
 	for (var i = nblocks;i > limit;i--) {
 		
 		while (sum_elems < avg_blocks) {
-			sum_stack += data[nblocks - sum_elems].value;
+			var indx = nblocks - sum_elems;
+			sum_stack += data[indx].value;
 			sum_elems += 1;
 		}
 		
 		if (i < nblocks) {
-			sum_stack -= data[i].value;
-			sum_stack += data[i - avg_blocks].value;
+			sum_stack -= data[i+1].value;
+			sum_stack += data[(i+1) - avg_blocks].value;
 		}
 		
 		//if (! data[i]) { alert(i); }
