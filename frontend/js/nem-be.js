@@ -1,6 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.0.7 (alpha)
+@version	:	0.0.9 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -59,6 +59,7 @@ var g_socket_links 	= {
 	"tx"	: "ws://chain.nem.ninja/socket/last-tx"	
 };
 
+/* to be removed
 var g_chart_calc = null;
 var g_chart_data = {
 	labels : [],
@@ -85,7 +86,7 @@ var g_chart_data = {
 		}
 	]
 };
-
+*/
 
 
 $(document).ready(function () {
@@ -95,7 +96,7 @@ $(document).ready(function () {
 	initInfoBox();
 	initInfoLinks();
 	initNavigation();
-	initChartBlocksSelect();
+	initChartBlocksRangeSelect();
 	
 	initPage();
 	/*setPageSection();
@@ -283,17 +284,17 @@ function initNavigation() {
 }
 
 
-function initChartBlocksSelect() {
+function initChartBlocksRangeSelect() {
 	
-	$("#chart_info select").change(function(evt) {
+	$("#chart_info h2 input").change(function(evt) {
 		evt.preventDefault();
-		var chart_data = getChartBlockRange(this.value);
-		showChart(chart_data);
+		//var chart_data = getChartBlockRange(this.value);
+		showChart(this.value);
 	});
 	
 }
 
-
+/* to be removed
 function getChartBlockRange(range) {
 
 	var range = range.split(',');
@@ -308,7 +309,7 @@ function getChartBlockRange(range) {
 	
 	return chart_data;
 }
-
+*/
 
 function showStats() {
 
@@ -370,184 +371,121 @@ function showStats() {
 	
 	if (arguments.length > 0) return;
 	
-	// load and display last 30 block times
-	$.get("/api/stats/blocktimes").done(function(res) {
-		//alert(res);
+	showChart($("#chartRange").val());
+	
+}
+
+
+function showChart() {
+	
+	var lvl = arguments.length == 1 && (!isNaN(arguments[0])) ? 
+		"?lvl=" + arguments[0] : "";
+	
+	$("#chart_info").show();
+	$("#canvas").html("<h3>Loading</h3>");
+	
+	// load the block times stats
+	$.get("/api/stats/blocktimes" + lvl).done(function(res) {
+		
 		try {
 			json = JSON.parse(res);
 			var data = json['blocktimes'];
+			data = calcAvgBT(data);
+			/* to be removed
 			g_chart_calc = calcAvgBT(data);
 			data = getChartBlockRange($("#chart_info select").val());
-			showChart(data);
+			*/
+			renderChart(data);
 
 		} catch(e) {
 			showErr(e.message);
 		}
-
 		
 	}).fail(function(xhr, ajaxOptions, thrownError) {
 		alert(xhr.status);
 		alert(thrownError);
-	});	
-	
+	});		
 }
 
 
-function showChart(data) {
-	
-	var chart_data = data;
+function renderChart(data) {
 
-	g_chart_data.labels = chart_data['lbl'];			// labels 1 - 60 
-	g_chart_data.datasets[0].data = chart_data['tme'];	// block times values
-	g_chart_data.datasets[1].data = chart_data['avg'];	// average block time values
+	var nblocks = data.length;
+	$("#canvas").html("");
 	
+	var svg = dimple.newSvg("#canvas", 846, 600).style("background","#F7F8E0");
+	var chart = new dimple.chart(svg, data);
+	chart.setBounds(60, 40, 730, 500);
 	
-	var ctx = $("#canvas").get(0).getContext("2d");
+	chart.defaultColors = [
+		new dimple.color("#DCDCDC"),
+		new dimple.color("#9757CD")
+	];
 	
-	g_chart = new Chart(ctx).Line(g_chart_data, {
-		animation	: false,
-		responsive 	: false,
-		bezierCurve : false,
-		datasetFill : false,
-		pointDot	: false,
-		pointDotRadius	: 2,
-		showTooltips	: false,
-		/*
-		scaleOverride : true,
-		scaleSteps: 5,
-		scaleLabel : "<%=value%>",
-		scaleStepWidth: 30
-		*/
-	});	
-	//g_chart.update();
+	var x = chart.addCategoryAxis("x",["height","height"]);
+	x.addOrderRule("height");
+	x.title = "Block height";
+	x.hidden = data.length > 60;
+	
+	var yTIM = chart.addMeasureAxis("y", "time");
+	var yAVG = chart.addMeasureAxis("y", "avrg");
 
+    var sTIM = chart.addSeries("Last " + nblocks + " block times (seconds)", dimple.plot.line,[x,yTIM]);
+	var sAVG = chart.addSeries("Last " + nblocks + " average block times (seconds)", dimple.plot.line,[x,yAVG]);
 	
-	$("#canvas").off('click');
-	$("#canvas").click(function(evt) {
-		showChartTooltip(g_chart,evt,chart_data);
-	});
+	sTIM.tooltipFontSize = "12px";
+	sAVG.tooltipFontSize = "12px";
 	
-
-	$("#canvas").off('mousemove');
-	$("#canvas").mousemove(function(evt) {
-		showChartTooltip(g_chart,evt,chart_data);
-	});
-
+	chart.addLegend(60, 10, 680, 10, "left");
+	chart.legends[0].fontSize = "12px";
 	
-	$("#canvas").off('mouseout');
-	$("#canvas").mouseout(function(evt) {
-		$("#chart_tool_tip").hide();
-	});
-	
-	$("#chart_info").show();
-	
-}
-
-
-function showChartTooltip(chart,evt,data) {
-
-	var group 			= "";
-	var datapoints 		= new Array();
-	var activePoints  	= chart.getPointsAtEvent(evt);
-
-	// extract last active point for each dataset
-	for (var i = 0;i < activePoints.length;i++) {
-		
-		if (activePoints[i].datasetLabel != group) {
-			
-			datapoints.push(activePoints[i]);
-			group = activePoints[i].datasetLabel;
-		}
-	}
-	
-	if (! datapoints[0]) {
-		$("#chart_tool_tip").hide();
-		return;
-	}
-	
-	var indx = data["height"].length - parseInt(datapoints[0].label);
-	//var indx = parseInt(datapoints[0].label)-1;
-	
-	var html = "Block / Height:<br />";
-		html += "<b>" + datapoints[0].label + " / " + data["height"][indx] + "</b><br />";
-	for (var i = 0;i < datapoints.length;i++) {
-		html += " <i class=\"fa fa-square\" style=\"color:" + datapoints[i].fillColor + "\"></i> " + Math.round(datapoints[i].value,2);
-	}
-	
-	var offset = $(evt.target).offset();
-	var posX = (evt.pageX - offset.left) + 30;
-	var posY = (evt.pageY - offset.top) + 30;
-	
-	$("#chart_tool_tip").html(html);
-	$("#chart_tool_tip").css("left",posX + "px");
-	$("#chart_tool_tip").css("top",posY + "px");
-	$("#chart_tool_tip").show();
+    chart.draw();
 }
 
 
 function calcAvgBT(data) {
 	
-	var blocks = data; 
-	var keys = Object.keys(blocks);
-	var len = keys.length;
-	
-	data = new Array();
-	keys.sort(sortByBlockHeight);
-	
-	for (var i = 0;i < len;i++) {
-		var key = keys[i];
-		data.push(blocks[key]);
-	}
+	data = d3.entries(data);
 
-	
-	var nblocks = data.length;
-	var n = nblocks / 2;
-	
-	var labels = new Array();
-	var avg_per_block = new Array(n);
-	
-	// convert to all block times to seconds	
-	for (var i = 0;i < nblocks;i++) {
-		data[i] = data[i] / 1000;
-		if (i < n) {
-			var j = i+1;
-			
-			labels.push(j);
-			//if (j % 5 == 0 || j == 1) labels.push(j);
-			//else labels.push("");
-		}
-	}
-	
-	n = nblocks / 2;
-	var j = 0;
-	var limit = n + j;
-	
-	// calculate averages for last n blocks
-	for (var i = 0;i < n;i++) {
-
-		j = i;
-		limit = j + n;
-		avg_per_block[j] = 0;
+	data.sort(function(a,b) {
+		var a = parseInt(a.key);
+		var b = parseInt(b.key);
 		
-		for (var j = i;j < limit;j++) avg_per_block[i] += data[j];
-				
-		avg_per_block[i] = avg_per_block[i] / n; 
+		return a > b ? 1 : -1;
+	});
+	
+	var avg_blocks = 60;
+	var nblocks = data.length - 1;
+	var limit = nblocks - (nblocks - avg_blocks) -1;
+	var sum_elems = 0;
+	var sum_stack = 0;
+	
+	var calc = new Array();
+	
+	for (var i = nblocks;i > limit;i--) {
+		
+		while (sum_elems < avg_blocks) {
+			var indx = nblocks - sum_elems;
+			sum_stack += data[indx].value;
+			sum_elems += 1;
+		}
+		
+		if (i < nblocks) {
+			sum_stack -= data[i+1].value;
+			sum_stack += data[(i+1) - avg_blocks].value;
+		}
+		
+		//if (! data[i]) { alert(i); }
+		
+		var block = new Object();
+		block['height'] 	= parseInt(data[i].key);
+		block['time'] 		= data[i].value / 1000;
+		block['avrg'] 		= Math.round((sum_stack / avg_blocks) / 1000);
+		
+		calc.unshift(block);
 	}
 	
-	data = data.reverse();
-	labels = labels.reverse();
-	avg_per_block = avg_per_block.reverse();
-	keys = keys.slice(0,avg_per_block.length).reverse();	
-	
-	return { "tme" : data, "lbl" : labels, "avg" : avg_per_block, "height" : keys };
-}
-
-
-function sortByBlockHeight(a,b) {
-	a = parseInt(a);
-	b = parseInt(b);
-	
-	return a > b ? -1 : 1;
+	return calc;
 }
 
 
