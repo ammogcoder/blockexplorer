@@ -59,35 +59,6 @@ var g_socket_links 	= {
 	"tx"	: "ws://chain.nem.ninja/socket/last-tx"	
 };
 
-/* to be removed
-var g_chart_calc = null;
-var g_chart_data = {
-	labels : [],
-	datasets : [
-		{
-			label : "Block times",
-            fillColor: "rgba(220,220,220,0.2)",
-            strokeColor: "rgba(220,220,220,1)",
-            pointColor: "rgba(220,220,220,1)",
-            pointStrokeColor: "#fff",
-            pointHighlightFill: "#fff",
-            pointHighlightStroke: "rgba(220,220,220,1)",
-			data : []
-		},
-		{
-			label : "Avg. block time",
-            fillColor: "rgba(151,87,205,0.2)",
-            strokeColor: "rgba(151,87,205,1)",
-            pointColor: "rgba(151,87,205,1)",
-            pointStrokeColor: "#fff",
-            pointHighlightFill: "#fff",
-            pointHighlightStroke: "rgba(151,187,205,1)",
-			data : []
-		}
-	]
-};
-*/
-
 
 $(document).ready(function () {
 	
@@ -142,7 +113,6 @@ function initPage() {
 		break;
 	}
 }
-
 
 /*
 $(window).unload(function () {
@@ -289,27 +259,52 @@ function initChartBlocksRangeSelect() {
 	$("#chart_info h2 input").change(function(evt) {
 		evt.preventDefault();
 		//var chart_data = getChartBlockRange(this.value);
-		showChart(this.value);
+		
+		switch(this.id) {
+		
+		case 'chartRange':
+			showChart(this.value);	
+			break;
+			
+		case 'calcRange':
+			
+			var min = setMinChartRange(this.value);
+			showChart(min);
+			break;
+		}
+		
 	});
+		
+	$("#chart_info h2 input").mousemove(
+		function(evt) {
+			var id = this.id;
+			$("label[for='" + id + "']").html(this.value);
+		}
+	); 
 	
 }
 
-/* to be removed
-function getChartBlockRange(range) {
 
-	var range = range.split(',');
-	range[0] = parseInt(range[0]);
-	range[1] = parseInt(range[1]);
+function setMinChartRange(val) {
 	
-	var chart_data = $.extend({}, g_chart_calc);
+	var displayLvl = [120,240,480,1000];
+	var len = displayLvl.length;
+	var i = 0;
 	
-	chart_data['lbl'] = chart_data['lbl'].slice(range[0]-1,range[1]-1);	// labels 
-	chart_data['tme'] = chart_data['tme'].slice(range[0]-1,range[1]-1);	// block times values
-	chart_data['avg'] = chart_data['avg'].slice(range[0]-1,range[1]-1);
+	var lvl = 2 * parseInt(val);
 	
-	return chart_data;
+	while(i  < len) {
+		if (displayLvl[i] >= lvl) break;
+		i+=1;
+	}
+	
+	$("label[for='calcRange']").html(val);
+	$("#chartRange").attr("min",i);
+	$("#chartRange").val(i);
+	
+	return i;
 }
-*/
+
 
 function showStats() {
 
@@ -371,6 +366,8 @@ function showStats() {
 	
 	if (arguments.length > 0) return;
 	
+	
+	setMinChartRange($("#calcRange").val());
 	showChart($("#chartRange").val());
 	
 }
@@ -384,13 +381,15 @@ function showChart() {
 	$("#chart_info").show();
 	$("#canvas").html("<h3>Loading</h3>");
 	
+	var avg_blocks = $("#calcRange").val();
+	
 	// load the block times stats
 	$.get("/api/stats/blocktimes" + lvl).done(function(res) {
 		
 		try {
 			json = JSON.parse(res);
 			var data = json['blocktimes'];
-			data = calcAvgBT(data);
+			data = calcAvgBT(data,avg_blocks);
 			/* to be removed
 			g_chart_calc = calcAvgBT(data);
 			data = getChartBlockRange($("#chart_info select").val());
@@ -413,10 +412,11 @@ function renderChart(data) {
 	var nblocks = data.length;
 	$("#canvas").html("");
 	
-	var svg = dimple.newSvg("#canvas", 846, 600).style("background","#F7F8E0");
+	var svg = dimple.newSvg("#canvas", 846, 620).style("background","#F7F8E0");
 	var chart = new dimple.chart(svg, data);
-	chart.setBounds(60, 40, 730, 500);
+	chart.setBounds(60, 60, 730, 500);
 	
+	// set chart colors
 	chart.defaultColors = [
 		new dimple.color("#DCDCDC"),
 		new dimple.color("#9757CD")
@@ -431,12 +431,13 @@ function renderChart(data) {
 	var yAVG = chart.addMeasureAxis("y", "avrg");
 
     var sTIM = chart.addSeries("Last " + nblocks + " block times (seconds)", dimple.plot.line,[x,yTIM]);
-	var sAVG = chart.addSeries("Last " + nblocks + " average block times (seconds)", dimple.plot.line,[x,yAVG]);
+	var sAVG = chart.addSeries("Last " + nblocks + " average block times (seconds) based on " + 
+		$("#calcRange").val() + " blocks calculation", dimple.plot.line,[x,yAVG]);
 	
 	sTIM.tooltipFontSize = "12px";
 	sAVG.tooltipFontSize = "12px";
 	
-	chart.addLegend(60, 10, 680, 10, "left");
+	chart.addLegend(10, 10, 680, 50, "left");
 	chart.legends[0].fontSize = "12px";
 	
     chart.draw();
@@ -446,7 +447,8 @@ function renderChart(data) {
 function calcAvgBT(data) {
 	
 	data = d3.entries(data);
-
+	
+	// sort data based on block height
 	data.sort(function(a,b) {
 		var a = parseInt(a.key);
 		var b = parseInt(b.key);
@@ -454,7 +456,8 @@ function calcAvgBT(data) {
 		return a > b ? 1 : -1;
 	});
 	
-	var avg_blocks = 60;
+	// set the average blocks calcuclation value
+	var avg_blocks = arguments.length == 2 && (! isNaN(arguments[1])) ? arguments[1] : 60;
 	var nblocks = data.length - 1;
 	var limit = nblocks - (nblocks - avg_blocks) -1;
 	var sum_elems = 0;
@@ -731,7 +734,6 @@ function toLocalDateTime(utc_timestamp) {
 function getData(data) {
 	return data;
 }
-
 
 /*
 function _updateData(data) {
