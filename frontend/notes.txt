@@ -142,3 +142,13 @@ version 0.0.8 (alpha) changes:
 	
 	css:
 	- changes related to the chart_info div container and subelements
+
+
+version 0.0.9 (alpha) changes:
+	html:
+	- added additional slider for the average blocks calculation range
+	
+	js code:
+	- updated function calcAvgBT to accept more then 60 block for average calculation
+	- added setMinChartRange function to set the min value for the display slider
+	
