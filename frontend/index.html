@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-<title>NEM Blockchain Explorer v0.0.8 (alpha)</title>
+<title>NEM Blockchain Explorer v0.0.9 (alpha)</title>
 <base href="" />
 <link rel="stylesheet" type="text/css" href="css/style.css" />
 <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css" />
@@ -217,25 +217,14 @@
 	<div id="chart_info">
 		<h2 class="range">
 			<!--Block times:-->
-			Display range selection:
+			Average calculation range <label for="calcRange">60</label> blocks:
+			<input id="calcRange" type="range" min="60" max="420" value="60" step="30" title="Averages calculated based from 60 to 420 blocks "/>
+			<br />
+			Display range selection: <!--label for="chartRange"></label> blocks:-->
 			<input id="chartRange" type="range" min="0" max="3" value="0" title="Display ranges of last 60, 180, 420, 940 blocks"/>
 		</h2>
 		<div>
-			
 			<div id="canvas" width="846" height="600"></div>
-			<!--
-			TO BE REMOVED
-			div style="text-align:right">
-			Last 
-			<select>
-				<option value="0">60</option>
-				<option value="1">180</option>			
-				<option value="2">420</option>
-				<option value="3">940</option>
-			</select>	 
-			blocks <i class="fa fa-long-arrow-right"></i>
-			</div-->
-		
 		</div>
 		<br />
 		<br />
