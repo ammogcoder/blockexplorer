@@ -107,6 +107,22 @@ class FromToTxHandler(BaseHandler):
 		txs = json.dumps({'data':txs})						
 		self.write(txs)
 		
+class BlockChartHandlerCustom(BaseHandler):
+	
+	def get(self):
+		number_of_blocks = int(self.get_argument('numBlock', 120)) + 1
+		starting_height = int(self.get_argument('height', 0)) - 1
+		blocks = self.redis_client.zrevrangebyscore('blocks', starting_height+number_of_blocks, starting_height)
+		times = []
+		for i in xrange(len(blocks) - 1):
+			blocka = json.loads(blocks[i])
+			blockb = json.loads(blocks[i + 1])
+			timea = blocka['timestamp_unix']
+			timeb = blockb['timestamp_unix']
+			delta = timea - timeb
+			times.append((blocka['height'], delta))			
+		self.write(json.dumps({'blocktimes':times}))
+
 class BlockChartHandler(BaseHandler):
 	
 	def get(self):
