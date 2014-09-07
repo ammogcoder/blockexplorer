@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-<title>NEM Blockchain Explorer v0.0.9 (alpha)</title>
+<title>NEM Blockchain Explorer v0.1.0 (alpha)</title>
 <base href="" />
 <link rel="stylesheet" type="text/css" href="css/style.css" />
 <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css" />
@@ -11,7 +11,7 @@
 <script type="text/javascript" src="js/jquery.animate-colors-min.js"></script>
 <script type="text/javascript" src="js/HTMLRenderer.js"></script>
 <script type="text/javascript" src="js/d3.js"></script>
-<script type="text/javascript" src="js/dimple.v2.1.0.min.js" ></script>
+<script type="text/javascript" src="js/dygraph-combined.js" ></script>
 <script type="text/javascript" src="js/nem-be.js"></script>
 
 <template id="blocks">
@@ -139,7 +139,7 @@
 		<li><label>Amount:</label>{amount}</li>
 		<li><label>Fee:</label>{fee}</li>
 		<li><label>Type:</label>{type}</li>
-		<li><label>Message:</label>{message}</li>
+		<li><label>Message:</label><pre class="message">{message}</pre></li>
 		<li><label>Message type:</label>{msgType}</li>
 		</ul>
 		<span class="sig">Sig: {signature}</span>
@@ -217,13 +217,13 @@
 	<div id="chart_info">
 		<h2 class="range">
 			<!--Block times:-->
+			
 			Average calculation range <label for="calcRange">60</label> blocks:
-			<input id="calcRange" type="range" min="60" max="420" value="60" step="30" title="Averages calculated based from 60 to 420 blocks "/>
-			<br />
-			Display range selection: <!--label for="chartRange"></label> blocks:-->
-			<input id="chartRange" type="range" min="0" max="3" value="0" title="Display ranges of last 60, 180, 420, 940 blocks"/>
+			<input id="calcRange" type="range" min="60" max="540" value="60" step="30" title="Averages calculated based from 60 to 420 blocks "/>
+			
 		</h2>
 		<div>
+			<div id="label_div"></div>
 			<div id="canvas" width="846" height="600"></div>
 		</div>
 		<br />
