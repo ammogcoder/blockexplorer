@@ -395,11 +395,10 @@ function showChart() {
 	var tot_blocks = 2000;
 	
 	//get last block height
-	$.get("/api/blocks").done(function(res) {
+	$.get("/api/last-block").done(function(res) {
 			
-		json = JSON.parse(res);
-		var blocks = json["data"];
-		var last_block = blocks[0].height - tot_blocks;
+		var block = JSON.parse(res);
+		var last_block = block.height - tot_blocks;
 		
 		// load the block times stats
 		var params = new Object();
