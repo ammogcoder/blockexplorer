@@ -151,4 +151,21 @@ version 0.0.9 (alpha) changes:
 	js code:
 	- updated function calcAvgBT to accept more then 60 block for average calculation
 	- added setMinChartRange function to set the min value for the display slider
+
 	
+version 0.1.0 (alpha) changes:
+	
+	html:
+	- removed the slider for definign the chart range as the chart already have is own range bar
+	- added pre tag for the message in the transkaction info seciton
+
+	js code:
+	- updated function calcAvgBT to return array of arrays instead array of obejcts
+	- removed setMinChartRange function to set the min value for the display slider
+	- changed function renderChart implemented dygraphs chart in it
+	- changed function showChart to call retrieve last block height and to retrieve last 2000 block times
+	- added fmtMessage function to split the encrypted messaegs in chunks so that cna fit into the transaction info dialog
+		
+	css:
+	- changed #canvas style partialy moved to a new class ".loading" class
+	- added .message class to center the transaction messages
