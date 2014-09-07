@@ -1,6 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.0.9 (alpha)
+@version	:	0.1.0 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -21,7 +21,12 @@
 	/socket/last-block is a websocket that will pop the latest block when it's harvested.
 	/api/block?hash=...
 	New calls for stats: 
-		/api/stats/blocktimes - will give the last 30 blocktimes
+		/api/stats/blocktimes - will give the last 120 blocktimes
+		/api/stats/v2/blocktimes - will give the 1st 120 blocktimes
+			possible parameters
+			height 	(startng height) 
+			numBlocks (nubmer of blocks returned from starting height)
+
 		/api/stats/harvesters - will give the top10 harvesters. 
 		By default you get thoe ones with the most harvested blocks.
 		You can use ?sortby=fees to get the ones with the most earnings.
@@ -70,10 +75,6 @@ $(document).ready(function () {
 	initChartBlocksRangeSelect();
 	
 	initPage();
-	/*setPageSection();
-	showData();
-	g_web_sock = connectSocket(g_socket_link);
-	*/
 	
 /* temp test code for manual socket testing
 	$(".logo a").click(function(evt) {
@@ -258,18 +259,18 @@ function initChartBlocksRangeSelect() {
 	
 	$("#chart_info h2 input").change(function(evt) {
 		evt.preventDefault();
-		//var chart_data = getChartBlockRange(this.value);
 		
 		switch(this.id) {
-		
+		/*
+		TO BE REMOVED
 		case 'chartRange':
 			showChart(this.value);	
 			break;
-			
+		*/
 		case 'calcRange':
 			
-			var min = setMinChartRange(this.value);
-			showChart(min);
+			/* TO BE REMOVED var min = setMinChartRange(this.value); */
+			showChart();
 			break;
 		}
 		
@@ -282,9 +283,15 @@ function initChartBlocksRangeSelect() {
 		}
 	); 
 	
+	
+	$("#chart_info h2 input").each(function(i) {
+		var id = this.id;
+		$("label[for='" + id + "']").html(this.value);
+	});
+	
 }
 
-
+/* to be deleted
 function setMinChartRange(val) {
 	
 	var displayLvl = [120,240,480,1000];
@@ -304,6 +311,7 @@ function setMinChartRange(val) {
 	
 	return i;
 }
+*/
 
 
 function showStats() {
@@ -366,81 +374,150 @@ function showStats() {
 	
 	if (arguments.length > 0) return;
 	
-	
+	showChart();
+	/* to be removed 
 	setMinChartRange($("#calcRange").val());
 	showChart($("#chartRange").val());
-	
+	*/
 }
 
 
 function showChart() {
 	
-	var lvl = arguments.length == 1 && (!isNaN(arguments[0])) ? 
-		"?lvl=" + arguments[0] : "";
-	
 	$("#chart_info").show();
-	$("#canvas").html("<h3>Loading</h3>");
+	
+	if (g_chart == null) {
+		$("#canvas").addClass("loading");
+		$("#canvas").html("<h3>Loading</h3>");
+	}
 	
 	var avg_blocks = $("#calcRange").val();
+	var tot_blocks = 2000;
 	
-	// load the block times stats
-	$.get("/api/stats/blocktimes" + lvl).done(function(res) {
+	//get last block height
+	$.get("/api/blocks").done(function(res) {
+			
+		json = JSON.parse(res);
+		var blocks = json["data"];
+		var last_block = blocks[0].height - tot_blocks;
 		
-		try {
-			json = JSON.parse(res);
-			var data = json['blocktimes'];
-			data = calcAvgBT(data,avg_blocks);
-			/* to be removed
-			g_chart_calc = calcAvgBT(data);
-			data = getChartBlockRange($("#chart_info select").val());
-			*/
-			renderChart(data);
-
-		} catch(e) {
-			showErr(e.message);
-		}
+		// load the block times stats
+		var params = new Object();
+		params['height'] = last_block;
+		params['numBlock'] = tot_blocks;
+		
+		$.get("/api/stats/v2/blocktimes",params).done(function(res) {
+			
+			try {
+				var json = JSON.parse(res);
+				var data = json['blocktimes'];
+				
+				data = calcAvgBT(data,avg_blocks);
+				renderChart(data);
+	
+			} catch(e) {
+				showErr(e.message);
+			}
+			
+		}).fail(function(xhr, ajaxOptions, thrownError) {
+			alert(xhr.status);
+			alert(thrownError);
+		});
 		
 	}).fail(function(xhr, ajaxOptions, thrownError) {
 		alert(xhr.status);
 		alert(thrownError);
-	});		
+	});
+	
 }
 
+/* to be used later maybe
+function pts_info(e, x, pts, row) {
+	
+	var str = "(" + x + ") ";
+	
+	for (var i = 0; i < pts.length; i++) {
+		var p = pts[i];
+		if (i) str += ", ";
+		str += p.name + ": " + p.yval;
+	}
+
+	return str;
+}
+*/
 
 function renderChart(data) {
 
 	var nblocks = data.length;
+
+	var range = Array();
+	range.push(data[nblocks-1][0]);
+	range.push(range[0]-60);
+	range = range.reverse();
+	
+	if (g_chart != null) {
+		g_chart.updateOptions({
+			'file': data,
+			'dateWindow': range
+		});
+		return;
+	}
+
+	$("#canvas").removeClass("loading");
 	$("#canvas").html("");
 	
-	var svg = dimple.newSvg("#canvas", 846, 620).style("background","#F7F8E0");
-	var chart = new dimple.chart(svg, data);
-	chart.setBounds(60, 60, 730, 500);
+	g_chart = new Dygraph(
+		document.getElementById("canvas"),
+		data,
+		{
+			labels: [ 'Height', 'Time', 'Average'],
+			labelsDiv: 'label_div',
+			/*
+			highlightCallback: function(e, x, pts, row) {
+				// do something
+            },			
+			labelsDivWidth: 150,
+			labelsDivStyles: {
+				'backgroundColor': 'rgba(0, 0, 0, 0.65)',
+                'padding': '2px',
+                'margin-right' : '10px',
+                'border': '1px solid black',
+                'borderRadius': '5px',
+                'boxShadow': '4px 4px 4px #888',
+                'color' : 'white',
+                'textAlign': 'right'
+            },
+            labelsSeparateLines: false,
+            title: 'Block time and average block time chart',
+            */
+			colors: ['#DCDCDC','#9757CD'],
+			strokeWidth: 1.75,
+			dateWindow: range,
+			ylabel: 'Block time (seconds)',
+			y2label: 'Average block time',
+            series: {
+              'Average': {
+                axis: 'y2'
+              }
+            },
+            axes: {
+            	y: {
+            		// set axis-related properties here
+            		drawGrid: false,
+            		independentTicks: true
+            	},
+            	y2: {
+            		// set axis-related properties here
+            		/*labelsKMB: true,*/
+            		drawGrid: true,
+            		independentTicks: true
+            	}
+            },
+			legend: 'always',
+			showRangeSelector: true
+		}
+	);
 	
-	// set chart colors
-	chart.defaultColors = [
-		new dimple.color("#DCDCDC"),
-		new dimple.color("#9757CD")
-	];
-	
-	var x = chart.addCategoryAxis("x",["height","height"]);
-	x.addOrderRule("height");
-	x.title = "Block height";
-	x.hidden = data.length > 60;
-	
-	var yTIM = chart.addMeasureAxis("y", "time");
-	var yAVG = chart.addMeasureAxis("y", "avrg");
-
-    var sTIM = chart.addSeries("Last " + nblocks + " block times (seconds)", dimple.plot.line,[x,yTIM]);
-	var sAVG = chart.addSeries("Last " + nblocks + " average block times (seconds) based on " + 
-		$("#calcRange").val() + " blocks calculation", dimple.plot.line,[x,yAVG]);
-	
-	sTIM.tooltipFontSize = "12px";
-	sAVG.tooltipFontSize = "12px";
-	
-	chart.addLegend(10, 10, 680, 50, "left");
-	chart.legends[0].fontSize = "12px";
-	
-    chart.draw();
 }
 
 
@@ -466,7 +543,7 @@ function calcAvgBT(data) {
 	var calc = new Array();
 	
 	for (var i = nblocks;i > limit;i--) {
-		
+				
 		while (sum_elems < avg_blocks) {
 			var indx = nblocks - sum_elems;
 			sum_stack += data[indx].value;
@@ -480,10 +557,11 @@ function calcAvgBT(data) {
 		
 		//if (! data[i]) { alert(i); }
 		
-		var block = new Object();
-		block['height'] 	= parseInt(data[i].key);
-		block['time'] 		= data[i].value / 1000;
-		block['avrg'] 		= Math.round((sum_stack / avg_blocks) / 1000);
+		var block = new Array(
+			parseInt(data[i].key),
+			data[i].value / 1000,
+			Math.round((sum_stack / avg_blocks) / 1000)
+		);
 		
 		calc.unshift(block);
 	}
@@ -711,6 +789,18 @@ function fmtDateTime(key,data) {
 }
 
 
+function fmtMessage(key,data) {
+	
+	var msg = data[key];
+	if (! msg) return msg;	
+
+	msg = msg.match(/.{1,64}/g);
+	msg = msg.join("\\\n");
+	
+	return msg;
+}
+
+
 function toLocalDateTime(utc_timestamp) {
 	
 	//console.log = utc_timestamp;
@@ -819,7 +909,7 @@ function showSearchResult(hash) {
 	if (obj_type == null) obj_type = (! data["account"]) ? null : 'account';
 	if (obj_type == null) obj_type = (! data["height"])  ? null : 'block';
 	
-	alert(obj_type);	
+	//alert(obj_type);
 	
 	if (obj_type == 'account') {
 		showAccountInfo(data);
@@ -851,6 +941,7 @@ function showSearchResult(hash) {
 	g_inforndr.addFormatter("amount", 'fmtNemValue');
 	g_inforndr.addFormatter("fee", 'fmtNemValue');
 	g_inforndr.addFormatter("timestamp", 'fmtDateTime');
+	g_inforndr.addFormatter("message", 'fmtMessage');
 
 	var html = g_inforndr.render(data);
 	
