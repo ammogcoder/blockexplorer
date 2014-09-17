@@ -1,6 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.1.0 (alpha)
+@version	:	0.1.1 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -46,6 +46,9 @@ var g_currpage	= 1;		// current display page index (1 = defult page)
 var g_running	= false;	// bool flag used to disable multiple data display actions on keyboard shortcuts
 var g_web_sock	= null;		// global web socket reference
 var g_chart		= null;		// global chart reference (block times chart)
+var g_avrg_range= null;		// average y-axis range [55,65] is prbable default range value
+
+//var g_avrg 		= null; // just for testing purposes
 
 var g_socket_link 	= "ws://chain.nem.ninja/socket/last-block";
 var g_api_link 		= "/api/blocks"; // local url for testing
@@ -261,15 +264,9 @@ function initChartBlocksRangeSelect() {
 		evt.preventDefault();
 		
 		switch(this.id) {
-		/*
-		TO BE REMOVED
-		case 'chartRange':
-			showChart(this.value);	
-			break;
-		*/
+
 		case 'calcRange':
 			
-			/* TO BE REMOVED var min = setMinChartRange(this.value); */
 			showChart();
 			break;
 		}
@@ -290,28 +287,6 @@ function initChartBlocksRangeSelect() {
 	});
 	
 }
-
-/* to be deleted
-function setMinChartRange(val) {
-	
-	var displayLvl = [120,240,480,1000];
-	var len = displayLvl.length;
-	var i = 0;
-	
-	var lvl = 2 * parseInt(val);
-	
-	while(i  < len) {
-		if (displayLvl[i] >= lvl) break;
-		i+=1;
-	}
-	
-	$("label[for='calcRange']").html(val);
-	$("#chartRange").attr("min",i);
-	$("#chartRange").val(i);
-	
-	return i;
-}
-*/
 
 
 function showStats() {
@@ -375,10 +350,6 @@ function showStats() {
 	if (arguments.length > 0) return;
 	
 	showChart();
-	/* to be removed 
-	setMinChartRange($("#calcRange").val());
-	showChart($("#chartRange").val());
-	*/
 }
 
 
@@ -445,6 +416,46 @@ function pts_info(e, x, pts, row) {
 }
 */
 
+
+
+function getAvrgRange() {
+	/*
+	var val = $("#console").val();
+	val += "\n" + g_avrg_range.toSource() + " # " + g_avrg.toSource();
+	$("#console").val(val);
+	*/
+	return g_avrg_range; 	
+}
+
+
+/**
+calculate the min and max for the averages y - axis
+returns: array with [min,max] values
+*/
+function avrgMinMaxRange(data,minDate,maxDate) {
+	
+	minDate = Math.round(minDate);
+	maxDate = Math.round(maxDate);
+	
+	var rangeData = data.filter(function(d) {
+		return d[0] >= minDate && d[0] <= maxDate;
+	});
+	
+	var min = d3.min(data,function(d) { return d[2]; });
+	var max = d3.max(data,function(d) { return d[2]; });
+
+	g_avrg = [min,max];
+	
+	min = Math.floor(min);
+	max = Math.floor(max) + 5;
+	
+	min -= min % 5;
+	max -= max % 5;
+	
+	return [min,max];	
+}
+
+
 function renderChart(data) {
 
 	var nblocks = data.length;
@@ -455,13 +466,20 @@ function renderChart(data) {
 	range = range.reverse();
 	
 	if (g_chart != null) {
+		
+		var avrgRange = g_chart.xAxisRange();
+		g_avrg_range = avrgMinMaxRange(data,avrgRange[0],avrgRange[1]);
+		
 		g_chart.updateOptions({
 			'file': data,
-			'dateWindow': range
+			axes: {y2: {valueRange: getAvrgRange() }}
+			//', dateWindow': range
 		});
 		return;
 	}
-
+	
+	g_avrg_range = avrgMinMaxRange(data,range[0],range[1]);
+	
 	$("#canvas").removeClass("loading");
 	$("#canvas").html("");
 	
@@ -489,14 +507,16 @@ function renderChart(data) {
             labelsSeparateLines: false,
             title: 'Block time and average block time chart',
             */
-			colors: ['#DCDCDC','#9757CD'],
+			colors: ['#CDCDCD','#9757CD'],
 			strokeWidth: 1.75,
+			highlightCircleSize: 4,
 			dateWindow: range,
 			ylabel: 'Block time (seconds)',
-			y2label: 'Average block time',
+			y2label: 'Average block time (seconds)',
             series: {
               'Average': {
-                axis: 'y2'
+                axis: 'y2',
+                stepPlot: false
               }
             },
             axes: {
@@ -507,19 +527,78 @@ function renderChart(data) {
             	},
             	y2: {
             		// set axis-related properties here
-            		/*labelsKMB: true,*/
+        			valueRange: getAvrgRange(), //[55,65],            		
+            		labelsKMB: false,
             		drawGrid: true,
-            		independentTicks: true
+            		independentTicks: true,
+            		/*
+            		ticker: function(min, max, pixels, opts, dygraph, vals) {
+            			
+            			var tickers = new Array();
+            			min = Math.floor(min);
+            			max = Math.ceil(max);
+            			
+            			if (min >= 55 && max <= 65) {
+            				min = 55;
+            				max = 65;
+            			}
+            			
+            			document.title = min + " -> " + max; 
+
+            			while(min < max) {
+            				var oTicker = new Object();
+            				oTicker['v'] = min;
+            				oTicker['label'] = "" + min;
+            				tickers.push(oTicker);
+            				min += 0.25;
+            			}
+
+            			//var your_value = 7.5;
+            			////Get auto-generated tickers (numericTicks is the default ticker generator)
+            			//var tickers = Dygraph.numericTicks(min, max, pixels, opts, dygraph, vals);
+            			//tickers.push({v: your_value, label: 'Custom Label'}); //Insert your label
+            			
+            			return tickers;
+            		}
+            		*/
             	}
             },
 			legend: 'always',
-			showRangeSelector: true
+			showRangeSelector: true,
+			drawCallback: function(g) {
+				
+				/*
+				disabled - it slow down the graph rendering
+				var xRange = g.xAxisRange();
+				xRange[0] = Math.round(xRange[0]);
+				xRange[1] = Math.round(xRange[1]);
+				
+				g_avrg_range = avrgMinMaxRange(data,xRange[0],xRange[1]);
+				*/
+			},
+			zoomCallback: function(minDate, maxDate, yRanges) {
+				
+				/*
+				//disabled - it slow down the graph rendering and
+				//	conflicts with the normal range selction functionality
+				
+				g_avrg_range = avrgMinMaxRange(data,minDate,maxDate);
+				
+				g_chart.updateOptions({
+					axes: {y2: {valueRange: getAvrgRange() }}
+				});
+				*/
+			}
 		}
 	);
 	
 }
 
 
+/**
+calculate the averages block times
+returns: array containing array elemtns example: [height,time,average]
+*/
 function calcAvgBT(data) {
 	
 	data = d3.entries(data);
@@ -533,11 +612,11 @@ function calcAvgBT(data) {
 	});
 	
 	// set the average blocks calcuclation value
-	var avg_blocks = arguments.length == 2 && (! isNaN(arguments[1])) ? arguments[1] : 60;
+	var avg_blocks = arguments.length == 2 && (! isNaN(arguments[1])) ? parseFloat(arguments[1]) : 60;
 	var nblocks = data.length - 1;
 	var limit = nblocks - (nblocks - avg_blocks) -1;
 	var sum_elems = 0;
-	var sum_stack = 0;
+	var sum_stack = 1.0;
 	
 	var calc = new Array();
 	
@@ -559,7 +638,7 @@ function calcAvgBT(data) {
 		var block = new Array(
 			parseInt(data[i].key),
 			data[i].value / 1000,
-			Math.round((sum_stack / avg_blocks) / 1000)
+			(sum_stack / avg_blocks) / 1000
 		);
 		
 		calc.unshift(block);
@@ -824,19 +903,6 @@ function getData(data) {
 	return data;
 }
 
-/*
-function _updateData(data) {
-
-	if (typeof data === "string") data = JSON.parse(data);
-
-	var html = $(g_htrndr.render(data)).hide();
-
-	$("#tbl tbody tr:eq(0)").before(html);
-	html.show(750);
-	$("#tbl tbody tr:gt(-3)").remove();
-	leftResize(750);
-}
-*/
 
 function updateData(data) {
 	if (typeof data === "string") data = JSON.parse(data);
