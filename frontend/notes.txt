@@ -169,3 +169,11 @@ version 0.1.0 (alpha) changes:
 	css:
 	- changed #canvas style partialy moved to a new class ".loading" class
 	- added .message class to center the transaction messages
+
+
+version 0.1.1 (alpha) changes:
+	js code:
+	- updated function calcAvgBT removed,rounding of average calculation
+	- added function avrgMinMaxRange that calculates the max and min range of the calcualted averages on y-axis
+	- updated the renderChart function to show fixed size average y-axis
+	  and to keep the user selected range if the user change the average calculation slider
