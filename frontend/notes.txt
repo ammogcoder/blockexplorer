@@ -178,6 +178,7 @@ version 0.1.1 (alpha) changes:
 	- updated the renderChart function to show fixed size average y-axis
 	  and to keep the user selected range if the user change the average calculation slider
 
+
 version 0.1.2 (alpha) changes:
 	js code:
 	- solved bug issue #4 the addresses contianing "-" can be serarched
