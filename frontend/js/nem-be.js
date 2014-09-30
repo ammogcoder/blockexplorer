@@ -1,6 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.1.1 (alpha)
+@version	:	0.1.2 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -196,7 +196,8 @@ function initSearch() {
 	// search data validation pattern
 	//var rex = new RegExp("^[a-zA-Z0-9]{10,}$","g");
 	if (g_rex == null)
-		g_rex = new RegExp("^[a-zA-Z0-9]{15,}$","g");
+		g_rex = new RegExp("^[a-zA-Z0-9\\-]{15,}$","g");
+	
 	
 	$(".srch input").keyup(function(evt) {
 		
@@ -206,9 +207,12 @@ function initSearch() {
 		g_rex.lastIndex = 0;
 		if (! g_rex.test(val)) {
 			showErr("Invalid search entry!");
-			alert(val);
+			//alert(val);
 			return;
 		}
+		
+		val = val.replace(/\-/g,'');
+		
 		showSearchResult(val);
 		//showSearchResult("04e6da77dcaa7fac14293027583d0da7dd2cfd5c8e49cd7d118cb5075e67dd7a");
 	});
