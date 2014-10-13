@@ -174,8 +174,7 @@ class CheckNis(BaseHandler):
 		if passed_ip != '':
 			self.ip = passed_ip
 		else:
-			self.ip = self.request.remote_ip
-		
+			self.ip = self.request.headers('X-Forwarded-For')[0]
 		try:
 			response = yield self.http_client.fetch("http://" + self.ip + ":7890/node/info")
 			self.write(response.body)
