@@ -25,7 +25,7 @@ from handlers.ApiHandler import FromToTxHandler
 from handlers.ApiHandler import BlockChartHandler
 from handlers.ApiHandler import BlockChartHandlerCustom
 from handlers.ApiHandler import HarvesterStatsHandler
-
+from handlers.ApiHandler import CheckNis
 #sockets
 from handlers.SocketHandler import LatestBlockSocket
 from handlers.SocketHandler import LatestTxSocket
@@ -90,6 +90,8 @@ if __name__ == '__main__':
          #txs
          (r'/socket/last-tx', LatestTxSocket),
          
+         #extras
+         (r'/api/extras/checknis', CheckNis),
          
         ], 
         **settings

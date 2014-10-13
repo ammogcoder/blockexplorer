@@ -162,3 +162,24 @@ class HarvesterStatsHandler(BaseHandler):
 		
 		self.write(json.dumps(result))
 			
+class CheckNis(BaseHandler):
+	def __init__(self, *args, **kwargs):	
+		super(CheckNis, self).__init__(*args, **kwargs)
+		self.ip = None
+		self.http_client = tornado.httpclient.AsyncHTTPClient()
+		
+	@tornado.gen.coroutine	
+	def get(self):
+		passed_ip = self.get_argument('ip', '')
+		if passed_ip != '':
+			self.ip = passed_ip
+		else:
+			self.ip = self.request.remote_ip
+		
+		try:
+			response = yield self.http_client.fetch("http://" + self.ip + ":7890/node/info")
+			self.write(response.body)
+		except:
+			self.write(json.dumps({'error':'Could not communicate with remote NIS at %s' % self.ip}))
+		
+		self.finish()
