@@ -41,37 +41,6 @@ a:hover { color: darkgreen; text-decoration: underline; }
 	color:white;
 }
 
-/* blue color scheme 
-.blue .left_sidebar  {background-color:#34495E;}
-
-.blue nav a {
-	color: #24323F;				
-}
-
-.blue nav li a {
-	border-top:1px solid #34495E;
-	border-bottom:1px solid #24323F;					
-}
-
-
-.blue nav ul li:first-child a {
-	border-top:1px solid #24323F;	
-}
-
-.blue nav ul li.selected:first-child a {
-	border-top:1px solid white;	
-}
-
-.blue #tbl tbody td {
-	color: #3081c3;
-}
-
-.blue #tbl a.last {
-	background-color: #3081c3;
-	color:white;
-}
-*/
-
 .blue .left_sidebar  {background-color:#24323F;}
 
 .blue nav a {
@@ -101,6 +70,111 @@ a:hover { color: darkgreen; text-decoration: underline; }
 	color:white;
 }
 
+.gimre {
+	background-color: #000000;
+	color: #ffffff;
+}
+
+.gimre .left_sidebar  { background-color: #444444; }
+
+.gimre .main {
+	background-color: #444444;
+	border: 1px solid black;
+}
+
+.gimre .main .srch {
+	background-color: #8e8e8e;
+	color: #000000;
+}
+
+.gimre .main .srch input {
+	background-color: #8e8e8e;
+}
+
+.gimre nav a {
+	color: #8e8e8e;
+}
+
+.gimre nav ul li a {
+	border-top:1px solid #8e8e8e;
+}
+
+.gimre nav ul li.selected a {
+	color: #41ce7b;
+	border-top: 1px solid #dfa82f;
+	border-bottom: 1px solid #dfa82f;
+}
+
+.gimre nav ul li.selected + li a {
+	border-top: 0px;
+}
+
+.gimre #main_data {
+	background-color: #000000;
+ }
+
+.gimre #overlay .ocontent {
+	background-color: #444444;
+}
+
+.gimre #info_box {
+	background-color: #000000;
+}
+
+.gimre #info_box h3 {
+	color: #dfa82f;
+}
+
+.gimre #txes {
+	background-color: #8e8e8e;
+}
+
+.gimre #overlay .ocontent #txes > ul {
+	background-color: #444444;
+	color: #ffffff;
+}
+
+.gimre #tbl th {
+	color: #ffffff;
+	background-color: #000000;
+	border-color: #444444;
+ }
+
+.gimre #tbl td {
+	background-color: #000000;
+	border-color: #000000;
+ }
+
+.gimre #tbl td a {
+	color: #dfa82f;
+ }
+
+.gimre #tbl tbody td {
+	background-color: #444444;
+	color: #ffffff;
+}
+
+.gimre #tbl tfoot td {
+	background-color: #8e8e8e;
+	color: #ffffff;
+}
+
+.gimre #tbl tfoot a {
+	background-color: #444444;
+}
+
+.gimre #tbl a.last {
+	background-color: #444444;
+	color: #41ce7b;
+}
+
+.gimre #tbl tr.newdata {
+	background-color:#444444;
+}
+
+.gimre #chart_info > div {
+	background-color: #444444;
+}
 
 @font-face {
     font-family: 'bourgeois_ultracondregular';
@@ -206,10 +280,6 @@ nav li.selected a {
 /*nav ul li:first-child a:hover,  
 nav ul li.selected:first-child a {
 */
-nav ul li.selected a {
-	border-top:1px solid white;
-	border-bottom:1px solid white;
-}
 
 .main {
 	border:1 px solid green;
@@ -433,6 +503,7 @@ td.sig {
 .blue #tbl tr.newdata {
 	background-color:#3081c3;
 }
+
 
 #info_box h2 {
 	margin:0px;

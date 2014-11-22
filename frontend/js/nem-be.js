@@ -186,8 +186,13 @@ function initInfoLinks() {
 		evt.preventDefault();	
 		if (evt.target.tagName != "A") return;	
 		var acc = $(evt.target).data('account');
-		showAccount(acc);
-		
+		if (acc === undefined) {
+			var hash = $(evt.target).data('blockhash');
+			showBlock(hash);
+
+		} else {
+			showAccount(acc);
+		}
 	});
 }
 
@@ -493,25 +498,8 @@ function renderChart(data) {
 		{
 			labels: [ 'Height', 'Time', 'Average'],
 			labelsDiv: 'label_div',
-			/*
-			highlightCallback: function(e, x, pts, row) {
-				// do something
-            },			
-			labelsDivWidth: 150,
-			labelsDivStyles: {
-				'backgroundColor': 'rgba(0, 0, 0, 0.65)',
-                'padding': '2px',
-                'margin-right' : '10px',
-                'border': '1px solid black',
-                'borderRadius': '5px',
-                'boxShadow': '4px 4px 4px #888',
-                'color' : 'white',
-                'textAlign': 'right'
-            },
-            labelsSeparateLines: false,
-            title: 'Block time and average block time chart',
-            */
-			colors: ['#CDCDCD','#9757CD'],
+			colors: ['#8e8e8e','#dfa82f'],
+			axisLabelColor: '#ffffff',
 			strokeWidth: 1.75,
 			highlightCircleSize: 4,
 			dateWindow: range,
@@ -520,7 +508,7 @@ function renderChart(data) {
             series: {
               'Average': {
                 axis: 'y2',
-                stepPlot: false
+                stepPlot: false,
               }
             },
             axes: {
@@ -779,6 +767,81 @@ function searchData(hash) {
 	});
 	
 	return json;
+}
+
+
+function showBlock(blockhash) {
+	
+	var URL = "/api/block";
+	var params = new Object();
+	params["hash"] = blockhash;
+	
+	// /api/block?hash=
+
+	$.ajax({
+			async	:	true,
+			method	:	"GET",
+			data	: 	params,
+			url		: 	URL
+	}).done(function(res) {
+		try {
+			
+			json = JSON.parse(res);
+			showBlockInfo(json);
+			
+		} catch(e) {
+			showErr("Results not found!");
+		}
+		
+		
+	}).fail(function(xhr, ajaxOptions, thrownError) {
+		alert(xhr.status);
+		alert(thrownError);
+	}).always(function() {
+		//g_running = false;
+	});	
+}
+
+
+function showBlockInfo(data) {
+	var tmpdata = data;
+	
+	tbl = $($("#info").html());
+	tmpl = tbl.find("thead td").html();
+	if (g_inforndr == null) g_inforndr = new HTMLRenderer();
+	
+	g_inforndr.setTemplate(tmpl);
+	g_inforndr.addFormatter("txes", 'fmtTrans');
+	g_inforndr.addFormatter("amount", 'fmtNemValue');
+	g_inforndr.addFormatter("fee", 'fmtNemValue');
+	g_inforndr.addFormatter("timestamp", 'fmtDateTime');
+	g_inforndr.addFormatter("message", 'fmtMessage');
+
+	var html = g_inforndr.render(data);
+
+	// add formatter functions for specific data value
+	g_inforndr.addFormatter("messages", 'fmtTrans');
+	g_inforndr.addFormatter("balance", 'fmtNemValue');
+	
+	$("body").addClass("overlay");
+	$("#info_box span").html(html);
+	$("#txes").html("");
+	$("#overlay").show();
+
+	// transactions
+	tmpl = tbl.find("tbody tr td").html();
+	g_inforndr.setTemplate(tmpl);
+	
+	var txlist = data['txes'];
+	var n = txlist.length;
+	
+	html = "";
+	for(var i = 0;i < n;i++) {
+		html += g_inforndr.render(txlist[i]);
+	}
+	
+	$("#txes").html(html);
+
 }
 
 
