@@ -7,6 +7,9 @@
 <link rel="stylesheet" type="text/css" href="css/style.css" />
 <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css" />
 <link rel='stylesheet' type="text/css" href="css/fonts.googleapis.com.css" />
+<script type="text/javascript" src="js/base32.js"></script>
+<script type="text/javascript" src="js/sha3.js"></script>
+<script type="text/javascript" src="js/ripemd160.js"></script>
 <script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
 <script type="text/javascript" src="js/jquery.animate-colors-min.js"></script>
 <script type="text/javascript" src="js/HTMLRenderer.js"></script>
@@ -102,15 +105,14 @@
 	<tbody>
 		<tr><td>
 		<ul>
-		<li><label>Block:</label>{block}</li>
+		<!-- <li><label>Block:</label>{block}</li> -->
 		<li><label>Timestamp:</label>{timestamp}</li>
 		<li><label>Hash:</label>{hash}</li>
 		<li><label>Sender:</label>{sender}</li>
 		<li><label>Sender PK:</label>{senderPk}</li>
 		<li><label>Recipient:</label>{recipient}</li>
-		<li><label>Amount:</label>{amount}</li>
-		<li><label>Fee:</label>{fee}</li>
-		<li><label>Type:</label>{type}</li>
+		<li><label>Amount:</label>{amount} <label>Fee:</label>{fee}</li>
+		<!-- <li><label>Type:</label>{type}</li> -->
 		<li><label>Message:</label>{message}</li>
 		<li><label>Message type:</label>{msgType}</li>
 		<li class="sig"><label>Sig:</label>{signature}</li>
@@ -171,6 +173,22 @@
 	</ul>
 	<!--span class="sig">{payload} {type}</span-->
 </template>
+<template id="accountTx">
+		<ul>
+		<li><label>Block:</label>{block}</li>
+		<li><label>Timestamp:</label>{timestamp}</li>
+		<li><label>Hash:</label>{hash}</li>
+		<li><label>Sender:</label>{sender}</li>
+		<li><label>Sender PK:</label>{signer}</li>
+		<li><label>Recipient:</label>{recipient}</li>
+		<li><label>Amount:</label>{amount}</li>
+		<li><label>Fee:</label>{fee}</li>
+		<li><label>Type:</label>{type}</li>
+		<li><label>Message:</label><pre class="message">{message}</pre></li>
+		<li><label>Message type:</label>{msgType}</li>
+		<li class="sig"><label>Sig:</label>{signature}</li>
+		</ul>
+</template>
 
 
 <template id="json_data" style="display:none;"></template>
@@ -182,7 +200,7 @@
 <ul>
 
 <li class="left_sidebar">  
-    <div class="logo"><a href="/"><img src="img/NEM-BE-logo.png" alt="NEM Blockchain Explorer" /></a></div>
+    <div class="logo"><a href="/"><img src="img/logo.png" alt="NEM Blockchain Explorer" align="left" />Blockchain Explorer</a></div>
     <nav>
 	<ul class="left_menu">
 		<li class="selected"><a href="/#blocks">home (blocks)</a></li>

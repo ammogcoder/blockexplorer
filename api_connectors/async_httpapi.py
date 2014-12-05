@@ -43,7 +43,7 @@ class AHttpApi():
         return self._getrequest('transaction/get?%s', signature=id)
     
     def getalltxforaccount(self, id):
-        return self._getrequest('account/transfers?%s', address=id)
+        return self._getrequest('account/transfers/all?%s', address=id)
     
     def getpeerlist(self):
         return self._getrequest('node/peer-list')

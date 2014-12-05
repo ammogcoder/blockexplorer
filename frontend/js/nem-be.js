@@ -39,6 +39,9 @@
 
 // global variables
 var g_rex		= null;		// global serch validation regexp object
+var g_last_height = null;
+var g_re_height = null;
+var g_re_page = null;
 var g_htrndr	= null;		// global HTML renderer object
 var g_inforndr	= null;		// global HTML block information renderer
 var g_section	= "blocks";	// currently displayed page section (default = blocks)
@@ -50,9 +53,9 @@ var g_avrg_range= null;		// average y-axis range [55,65] is prbable default rang
 
 //var g_avrg 		= null; // just for testing purposes
 
-var g_socket_link 	= "ws://chain.nem.ninja/socket/last-block";
+var g_socket_link 	= "ws://nembex.nem.ninja/socket/last-block";
 var g_api_link 		= "/api/blocks"; // local url for testing
-// g_api_link = "http://chain.nem.ninja/api/blocks"; // remote url
+// g_api_link = "http://nembex.nem.ninja/api/blocks"; // remote url
 //	"/data/data.json"; //local url for testing with static json data
 
 var g_api_links		= {
@@ -63,8 +66,8 @@ var g_api_links		= {
 
 
 var g_socket_links 	= {
-	"blocks": "ws://chain.nem.ninja/socket/last-block",
-	"tx"	: "ws://chain.nem.ninja/socket/last-tx"	
+	"blocks": "ws://nembex.nem.ninja/socket/last-block",
+	"tx"	: "ws://nembex.nem.ninja/socket/last-tx"	
 };
 
 
@@ -202,6 +205,11 @@ function initSearch() {
 	//var rex = new RegExp("^[a-zA-Z0-9]{10,}$","g");
 	if (g_rex == null)
 		g_rex = new RegExp("^[a-zA-Z0-9\\-]{15,}$","g");
+	if (g_re_height == null)
+		g_re_height = new RegExp("^block [1-9][0-9]*$", "g");
+	if (g_re_page == null)
+		g_re_page = new RegExp("^page [1-9][0-9]*$", "g");
+
 	
 	
 	$(".srch input").keyup(function(evt) {
@@ -211,7 +219,23 @@ function initSearch() {
 		var val = $.trim(this.value);
 		g_rex.lastIndex = 0;
 		if (! g_rex.test(val)) {
-			showErr("Invalid search entry!");
+			if (! g_re_height.test(val)) {
+				if (! g_re_page.test(val)) {
+					console.log(val);
+					showErr("Invalid search entry!");
+				} else {
+					console.log("switch to page" + val.substr(5));
+					switchToPage(val.substr(5));
+				}
+			} else {
+				var blockNo = parseInt(val.substr(6));
+				console.log("retrieving block at " + blockNo);
+				//showBlockByHeight(blockNo);
+				if (g_last_height != null) {
+					var page = Math.floor((g_last_height - blockNo) / 23 + 1);
+					switchToPage(page);
+				}
+			}
 			//alert(val);
 			return;
 		}
@@ -639,6 +663,19 @@ function calcAvgBT(data) {
 	return calc;
 }
 
+function switchToPage(num) {
+	var page = 1;
+	page = parseInt(num);
+	if (isNaN(page)) page = 1;
+
+	g_currpage = page;
+	if (g_currpage <= 0) {
+		g_currpage = 1;
+		g_running = false;
+	}
+		
+	showData(g_currpage);
+}
 
 function showData() {
 	
@@ -650,6 +687,9 @@ function showData() {
 	
 	var data = loadData(page);
 	renderData(data);
+	if (page == 1) {
+		g_last_height = data['data'][0]['height'];
+	}
 	
 	// set timeout of 0.5 sec to avoid multiple requests because 
 	// the key up event is triggered multiple times for one stroke
@@ -769,6 +809,37 @@ function searchData(hash) {
 	return json;
 }
 
+function showBlockByHeight(height) {
+	var URL = g_api_link;
+	var params = new Object();
+	params["from"] = height;
+	params["to"] = height;
+	params["page"]=0;
+	params["blocks_per_page"]=1;
+
+	$.ajax({
+			async	:	true,
+			method	:	"GET",
+			data	: 	params,
+			url		: 	URL
+	}).done(function(res) {
+		try {
+			json = JSON.parse(res);
+			showBlockInfo(json['data'][0]);
+			
+		} catch(e) {
+			showErr("Results not found!");
+		}
+		
+		
+	}).fail(function(xhr, ajaxOptions, thrownError) {
+		alert(xhr.status);
+		alert(thrownError);
+	}).always(function() {
+		//g_running = false;
+	});	
+
+}
 
 function showBlock(blockhash) {
 	
@@ -802,6 +873,13 @@ function showBlock(blockhash) {
 	});	
 }
 
+function hex2a(hexx) {
+    var hex = hexx.toString();//force conversion
+    var str = '';
+    for (var i = 0; i < hex.length; i += 2)
+        str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+    return str;
+}
 
 function showBlockInfo(data) {
 	var tmpdata = data;
@@ -837,6 +915,9 @@ function showBlockInfo(data) {
 	
 	html = "";
 	for(var i = 0;i < n;i++) {
+		if (txlist[i]['msgType'] == 1) {
+			txlist[i]['message'] = hex2a(txlist[i]['message']);
+		}
 		html += g_inforndr.render(txlist[i]);
 	}
 	
@@ -844,6 +925,72 @@ function showBlockInfo(data) {
 
 }
 
+
+function showTransactions(address) {
+	var URL = "/api/transfers";
+	var params = new Object();
+	params["address"] = address;
+	
+	// /api/transfers?address=TBLOODZW6W4DUVL4NGAQXHZXFQJLNHPDXHULLHZW
+
+	$.ajax({
+			async	:	true,
+			method	:	"GET",
+			data	: 	params,
+			url		: 	URL
+	}).done(function(res) {
+		try {
+			
+			json = JSON.parse(res);
+			showTransactionsInfo(json);
+			
+		} catch(e) {
+			showErr("Transactions not found!");
+		}
+		
+		
+	}).fail(function(xhr, ajaxOptions, thrownError) {
+		alert(xhr.status);
+		alert(thrownError);
+	}).always(function() {
+		//g_running = false;
+	});	
+
+}
+
+function showTransactionsInfo(data) {
+	tmpl = $("#accountTx").html();
+	g_inforndr.setTemplate(tmpl);
+	
+	var txlist = data['data'];
+	var n = txlist.length;
+	
+	g_inforndr.addFormatter("txes", 'fmtTrans');
+	g_inforndr.addFormatter("timestamp", 'fmtDateTimeNIS');
+	g_inforndr.addFormatter("amount", 'fmtNemValue');
+	g_inforndr.addFormatter("fee", 'fmtNemValue');	
+	g_inforndr.addFormatter("sender", 'fmtSenderT');
+	
+	html = "";
+	var d = new Date(2014, 7, 4, 0, 0, 0, 0).getTime() / 1000;
+	for(var i = 0;i < n;i++) {
+		var curTx = txlist[i]['transaction'];
+		curTx['msgType'] = curTx['message']['type'];
+		if (curTx['message']['type'] == 1) {
+			curTx['message'] = hex2a(curTx['message']['payload']);
+		} else {
+			curTx['message'] = curTx['message']['payload'];
+		}
+		curTx['sender'] = curTx['signer'];
+		curTx['block'] = txlist[i]['meta']['height'];
+		curTx['timestamp'] = curTx['timeStamp'] + d;
+		curTx['hash'] = 'unavailable';
+		html += g_inforndr.render(curTx);
+	}
+	
+	$("#txes").html(html);
+
+}
 
 function showAccount(address) {
 	
@@ -884,7 +1031,7 @@ function showAccount(address) {
 function showAccountInfo(data) {
 	
 	var tmpdata = data;
-	
+
 	data = tmpdata['account'];
 	
 	data['status'] = tmpdata['meta']['status'];
@@ -904,7 +1051,8 @@ function showAccountInfo(data) {
 	$("#info_box span").html(g_inforndr.render(data));
 	$("#overlay").show();
 	$("body").addClass("overlay");
-	
+	$("#txes").html("");
+	showTransactions(data['address']);
 }
 
 
@@ -933,6 +1081,27 @@ function fmtDateTime(key,data) {
 	return toLocalDateTime(data[key]);
 }
 
+function fmtSenderT(key,data) {
+	return toAddress(data[key]);
+}
+
+function toAddress(publicKey) {
+var binPubKey = CryptoJS.enc.Hex.parse(publicKey);
+var hash = CryptoJS.SHA3(binPubKey, { outputLength: 256 });
+var hash2 = CryptoJS.RIPEMD160(hash);
+var versionPrefixedRipemd160Hash = '98' + CryptoJS.enc.Hex.stringify(hash2);
+var tempHash = CryptoJS.SHA3(CryptoJS.enc.Hex.parse(versionPrefixedRipemd160Hash), { outputLength: 256 });
+var stepThreeChecksum = CryptoJS.enc.Hex.stringify(tempHash).substr(0,8);;
+
+var concatStepThreeAndStepSix = hex2a(versionPrefixedRipemd160Hash + stepThreeChecksum);
+
+	var ret = baseenc.b32encode(concatStepThreeAndStepSix);
+	return ret;
+}
+
+function fmtDateTimeNIS(key,data) {
+	return toLocalDateTimeNIS(data[key]);
+}
 
 function fmtMessage(key,data) {
 	
@@ -945,6 +1114,14 @@ function fmtMessage(key,data) {
 	return msg;
 }
 
+function toLocalDateTimeNIS(utc_timestamp) {
+	if (! utc_timestamp) return utc_timestamp;
+
+	var date = new Date(null);
+	date.setSeconds(utc_timestamp);
+
+	return [date.toLocaleDateString(), date.toLocaleTimeString()];
+}
 
 function toLocalDateTime(utc_timestamp) {
 	
@@ -1010,6 +1187,9 @@ function connectSocket(url) {
 	    	//showMsg(evt.data);
 	    	try {
 	    		// update only if last 25 block are displayed
+			var data = evt.data;
+			if (typeof data === "string") data = JSON.parse(data);
+			g_last_height = data['height'];
 	    		if (g_currpage == 1) updateData(evt.data);
 	    	}catch(ex) {
 	    		showErr(ex.message);
