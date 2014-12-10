@@ -1061,11 +1061,9 @@ function fmtNemValue(key,data) {
 	var o = data[key];
 	if (! o) return "0.000000";
 	
-	o = "" + o;
-	var pos = o.length - 6;
-	
-	o = o.substring(0,pos) + "." + o.substring(pos);
-	if (o.indexOf('.') === 0) o = '0' + o;
+	o = o / 1000000;
+	var r = o.toFixed(6);
+	o = "" + r;
 	return o;
 }
 
