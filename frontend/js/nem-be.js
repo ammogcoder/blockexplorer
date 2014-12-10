@@ -626,38 +626,27 @@ function calcAvgBT(data) {
 		
 		return a > b ? 1 : -1;
 	});
-	
+
 	// set the average blocks calcuclation value
 	var avg_blocks = arguments.length == 2 && (! isNaN(arguments[1])) ? parseFloat(arguments[1]) : 60;
-	var nblocks = data.length - 1;
-	var limit = nblocks - (nblocks - avg_blocks) -1;
-	var sum_elems = 0;
-	var sum_stack = 1.0;
-	
 	var calc = new Array();
-	
-	for (var i = nblocks;i > limit;i--) {
-				
-		while (sum_elems < avg_blocks) {
-			var indx = nblocks - sum_elems;
-			sum_stack += data[indx].value;
-			sum_elems += 1;
-		}
-		
-		if (i < nblocks) {
-			sum_stack -= data[i+1].value;
-			sum_stack += data[(i+1) - avg_blocks].value;
-		}
-		
-		//if (! data[i]) { alert(i); }
-		
+
+	// add first element twice (on purpose)
+	var sum_stack = data[0].value;
+	for (var i = 0; i < avg_blocks - 1; ++i) {
+		sum_stack += data[i].value;
+	}
+	for (var i = (avg_blocks - 1); i < data.length; ++i) {
+		sum_stack -= data[i - (avg_blocks - 1)].value;
+		sum_stack += data[i].value;
+
 		var block = new Array(
 			parseInt(data[i].key),
 			data[i].value / 1000,
 			(sum_stack / avg_blocks) / 1000
 		);
 		
-		calc.unshift(block);
+		calc.push(block);
 	}
 	
 	return calc;
