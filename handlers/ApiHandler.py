@@ -7,6 +7,7 @@ import tornadoredis
 import re
 import tornado.websocket
 import collections
+import zlib
 from itertools import izip_longest
 from handlers.BaseHandler import BaseHandler
 
@@ -21,7 +22,7 @@ class BlockAfterHandler(BaseHandler):
 class LastBlockHandler(BaseHandler):
 	
 	def get(self):
-		self.write(self.redis_client.zrange('blocks', 0, 2, 'desc')[0])
+		self.write(zlib.decompress(self.redis_client.zrange('blocks', 0, 2, 'desc')[0]))
 		
 class SearchHandler(BaseHandler):
 	@tornado.gen.coroutine
@@ -83,7 +84,7 @@ class FromToBlocksHandler(BaseHandler):
 			blocks = self.redis_client.zrangebyscore('blocks', hfrom, hto)
 			blocks.reverse()
 				
-		blocks = [json.loads(b) for b in blocks]
+		blocks = [json.loads(zlib.decompress(b)) for b in blocks]
 		blocks = json.dumps({"data":blocks})						
 		self.write(blocks)
 	
@@ -116,8 +117,8 @@ class BlockChartHandlerCustom(BaseHandler):
 		blocks = self.redis_client.zrevrangebyscore('blocks', starting_height+number_of_blocks, starting_height)
 		times = collections.OrderedDict()
 		for i in xrange(len(blocks) - 1):
-			blocka = json.loads(blocks[i])
-			blockb = json.loads(blocks[i + 1])
+			blocka = json.loads(zlib.decompress(blocks[i]))
+			blockb = json.loads(zlib.decompress(blocks[i + 1]))
 			timea = blocka['timestamp_unix']
 			timeb = blockb['timestamp_unix']
 			delta = timea - timeb
@@ -134,8 +135,8 @@ class BlockChartHandler(BaseHandler):
 		blocks = self.redis_client.zrange('blocks', 0, possibilites[n], 'desc')
 		times = {}
 		for i in xrange(len(blocks) - 1):
-			blocka = json.loads(blocks[i])
-			blockb = json.loads(blocks[i + 1])
+			blocka = json.loads(zlib.decompress(blocks[i]))
+			blockb = json.loads(zlib.decompress(blocks[i + 1]))
 			timea = blocka['timestamp_unix']
 			timeb = blockb['timestamp_unix']
 			delta = timea - timeb
