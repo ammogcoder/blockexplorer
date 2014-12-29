@@ -64,9 +64,9 @@ class RedisConnector():
                     fees_total += tx['fee']  
                     
                     #save tx in redis
-                    self.redis_client.zadd('tx', timestamps_unix, tornado.escape.json_encode(tx))
                     self.redis_client.set(tx['hash'], tornado.escape.json_encode(tx))
                     if not block_is_known:
+                        self.redis_client.zadd('tx', timestamps_unix, tornado.escape.json_encode(tx))
                         self.redis_client.publish('tx_channel', tornado.escape.json_encode(tx))
                 
                 #save blocks in redis
