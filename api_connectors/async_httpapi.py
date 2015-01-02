@@ -9,7 +9,7 @@ import tornado.httpclient
 
 
 class AHttpApi():
-    def __init__(self, baseurl='http://localhost:7890'):
+    def __init__(self, baseurl='http://chain.nem.ninja:7890'):
         self.base_url = baseurl
         self.http_client = tornado.httpclient.AsyncHTTPClient()
     
@@ -46,4 +46,4 @@ class AHttpApi():
         return self._getrequest('account/transfers/all?%s', address=id)
     
     def getpeerlist(self):
-        return self._getrequest('node/peer-list')
+        return self._getrequest('node/peer-list/all')
