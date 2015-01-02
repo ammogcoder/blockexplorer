@@ -25,10 +25,11 @@ class NetworkDiscoverer(BasePeriodic):
             for host, data in active_nodes.items():
                 target_host = '%s://%s:%d' % (data['endpoint']['protocol'], host, data['endpoint']['port'])
                 node_api = async_httpapi.AHttpApi(target_host)
-                response = yield self.api.getpeerlist()
+                response = yield node_api.getpeerlist()
                 node_peers = json.loads(response.body)['active']
                 for peer in node_peers:
                     if peer['endpoint']['host'] not in active_nodes.keys():
                        print 'NEW PEER: ', peer
+                       active_nodes[peer['endpoint']['host']] = peer
         except:
             traceback.print_exc()
