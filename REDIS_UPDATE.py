@@ -8,6 +8,7 @@ import tornado.ioloop
 import tornado.options
 import tornado.locale 
 import os.path
+import datetime
 from ConfigParser import SafeConfigParser
 from tornado.options import define, options
 
@@ -58,4 +59,9 @@ if __name__ == '__main__':
     redisupdater = tornado.ioloop.PeriodicCallback(NetworkDiscoverer.NetworkDiscoverer().run, int(parser.get("networkdiscoverer", "network_update_interval")))
     redisupdater.start()
     
-    tornado.ioloop.IOLoop.instance().start()
+    Worker = tornado.ioloop.IOLoop.instance()
+    
+    #run periodics with bigger gaps once
+    Worker.add_timeout(datetime.timedelta(seconds=1), NetworkDiscoverer.NetworkDiscoverer().run)
+    
+    Worker.start()
