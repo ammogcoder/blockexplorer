@@ -20,4 +20,4 @@ class BasePeriodic(object):
         
     @tornado.gen.coroutine
     def run(self):
-        pass
+        raise Exception("NotImplementedException")
