@@ -1,15 +1,12 @@
 '''
 Distributed under the MIT License, see accompanying file LICENSE.txt
 '''
-import redis
 import tornado.gen
 import ujson as json
 import time
 import traceback
 import zlib
 from periodics.BasePeriodic import BasePeriodic
-from api_connectors import async_httpapi
-from ConfigParser import SafeConfigParser
 
 
 class RedisConnector(BasePeriodic):

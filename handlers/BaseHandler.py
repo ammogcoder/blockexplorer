@@ -3,6 +3,7 @@ Distributed under the MIT License, see accompanying file LICENSE.txt
 '''
 
 import tornado.web
+import redis
 from pycket.session import SessionMixin
 from ConfigParser import SafeConfigParser
 from periodics import RedisConnector
@@ -15,5 +16,5 @@ class BaseHandler(tornado.web.RequestHandler, SessionMixin):
 		locale = self.session.get('locale', "")
 		self.parser = SafeConfigParser()
 		self.parser.read("settings.INI")
-		self.redis_client = RedisConnector.RedisConnector.redis_client
+		self.redis_client = redis.StrictRedis(host='localhost', port=6379, db=12)
 		self.api = async_httpapi.AHttpApi()
