@@ -7,18 +7,18 @@ import ujson as json
 import time
 import traceback
 import zlib
+from periodics.BasePeriodic import BasePeriodic
 from api_connectors import async_httpapi
 from ConfigParser import SafeConfigParser
 
 
-class RedisConnector():
-    parser = SafeConfigParser()
-    parser.read("settings.INI")
-    api = async_httpapi.AHttpApi()
-    redis_client = redis.StrictRedis(host='localhost', port=6379, db=12)
-    refresh_after = int(parser.get("api", "runs_to_reindex"))
-    runs = 0
-    seen_blocks = 0
+class RedisConnector(BasePeriodic):
+    
+    def __init__(self):
+        super(RedisConnector, self).__init__()
+        self.refresh_after = int(self.parser.get("api", "runs_to_reindex"))
+        self.runs = 0
+        self.seen_blocks = 0
     
     def _get_height(self):
         if self.redis_client.zcard('blocks') == 0:
@@ -30,7 +30,7 @@ class RedisConnector():
         return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(timestamp/1000))
     
     @tornado.gen.coroutine
-    def update_redischain(self):
+    def run(self):
         #reindex
         try:
             if self.runs >= self.refresh_after:

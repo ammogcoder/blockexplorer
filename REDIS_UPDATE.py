@@ -13,6 +13,7 @@ from tornado.options import define, options
 
 #periodical
 from periodics import RedisConnector
+from periodics import NetworkDiscoverer
 
 parser = SafeConfigParser()
 parser.read("settings.INI")
@@ -52,7 +53,9 @@ if __name__ == '__main__':
     server.listen(options.port, '127.0.0.1') 
     
     #shedule periodics
-    redisupdater = tornado.ioloop.PeriodicCallback(RedisConnector.RedisConnector().update_redischain, int(parser.get("redis", "redis_update_interval")))
+    redisupdater = tornado.ioloop.PeriodicCallback(RedisConnector.RedisConnector().run, int(parser.get("redis", "redis_update_interval")))
+    redisupdater.start()
+    redisupdater = tornado.ioloop.PeriodicCallback(NetworkDiscoverer.NetworkDiscoverer().run, int(parser.get("networkdiscoverer", "network_update_interval")))
     redisupdater.start()
     
     tornado.ioloop.IOLoop.instance().start()

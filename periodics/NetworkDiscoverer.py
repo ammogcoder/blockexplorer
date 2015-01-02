@@ -4,21 +4,16 @@ Distributed under the MIT License, see accompanying file LICENSE.txt
 import redis
 import tornado.gen
 import ujson as json
-import time
 import traceback
 import zlib
 from api_connectors import async_httpapi
 from ConfigParser import SafeConfigParser
+from periodics.BasePeriodic import BasePeriodic
 
-
-class NetworkDiscoverer():
-    parser = SafeConfigParser()
-    parser.read('settings.INI')
-    api = async_httpapi.AHttpApi()
-    redis_client = redis.StrictRedis(host='localhost', port=6379, db=12)
-    
+class NetworkDiscoverer(BasePeriodic):
+     
     @tornado.gen.coroutine
-    def discover_network(self):
+    def run(self):
         try:
             #get neighbors
             active_nodes = {}
@@ -34,11 +29,6 @@ class NetworkDiscoverer():
                 node_peers = json.loads(response.body)['active']
                 for peer in node_peers:
                     if peer['endpoint']['host'] not in active_nodes.keys():
-                        print 'NEW PEER: ', peer
-                
+                       print 'NEW PEER: ', peer
         except:
             traceback.print_exc()
-            
-if __name__ == '__main__':
-    disc = NetworkDiscoverer()
-    disc.discover_network()
