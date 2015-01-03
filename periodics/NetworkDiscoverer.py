@@ -31,5 +31,6 @@ class NetworkDiscoverer(BasePeriodic):
                 for peer in node_peers:
                     if peer['endpoint']['host'] not in active_nodes.keys():
                        active_nodes[peer['endpoint']['host']] = peer
+            self.redis_client.set('active_nodes', json.dumps(active_nodes))
         except:
             traceback.print_exc()

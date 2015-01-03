@@ -26,6 +26,7 @@ from handlers.ApiHandler import BlockChartHandler
 from handlers.ApiHandler import BlockChartHandlerCustom
 from handlers.ApiHandler import HarvesterStatsHandler
 from handlers.ApiHandler import CheckNis
+from handlers.ApiHandler import NodeListHandler
 #sockets
 from handlers.SocketHandler import LatestBlockSocket
 from handlers.SocketHandler import LatestTxSocket
@@ -83,7 +84,7 @@ if __name__ == '__main__':
          (r'/api/stats/blocktimes', BlockChartHandler),
          (r'/api/stats/v2/blocktimes', BlockChartHandlerCustom),
          (r'/api/stats/harvesters', HarvesterStatsHandler),
-         
+         (r'/api/stats/nodes', NodeListHandler),
          #sockets
          #blocks
          (r'/socket/last-block', LatestBlockSocket),

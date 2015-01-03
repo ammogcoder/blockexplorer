@@ -183,3 +183,8 @@ class CheckNis(BaseHandler):
 			self.write(json.dumps({'error':'Could not communicate with remote NIS at %s' % self.ip}))
 		
 		self.finish()
+		
+class NodeListHandler(BaseHandler):
+	def get(self):
+		self.write(self.redis_client.get('active_nodes'))
+		
