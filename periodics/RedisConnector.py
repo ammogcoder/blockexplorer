@@ -6,8 +6,9 @@ import ujson as json
 import time
 import traceback
 import zlib
+import datetime
 from periodics.BasePeriodic import BasePeriodic
-
+from toolbox.hash_converter import convert_to_address as pk2address
 
 class RedisConnector(BasePeriodic):
     
@@ -16,6 +17,7 @@ class RedisConnector(BasePeriodic):
         self.refresh_after = int(self.parser.get("api", "runs_to_reindex"))
         self.runs = 0
         self.seen_blocks = 0
+        self.nemEpoch = datetime.datetime(2015, 2, 1, 0, 0, 0, 0, None)
     
     def _get_height(self):
         if self.redis_client.zcard('blocks') == 0:
@@ -23,8 +25,13 @@ class RedisConnector(BasePeriodic):
         else:
             return int(json.loads(zlib.decompress(self.redis_client.zrange('blocks', 0, 1, 'desc')[0]))['height'])
             
+    def _calc_unix(self, nemStamp):
+        r = self.nemEpoch + datetime.timedelta(seconds=nemStamp)
+        return (r - datetime.datetime.utcfromtimestamp(0)).total_seconds()
+
     def _calc_timestamp(self, timestamp):
-        return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(timestamp/1000))
+        r = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(timestamp))
+        return r
     
     @tornado.gen.coroutine
     def run(self):
@@ -39,42 +46,61 @@ class RedisConnector(BasePeriodic):
             traceback.print_exc() 
         try:
             response = yield self.api.getblocksafter(self._get_height())
+            #print response.body
             
-            for block in json.loads(response.body)['data']:
+            for blockData in json.loads(response.body)['data']:
                 block_is_known = False
+                block = blockData["block"] 
+		print "block height:", block['height']
+                block['hash'] = blockData['hash']
+                block['signerAddress'] = pk2address(block['signer'])
                 
                 if self.seen_blocks >= block['height']:
                     block_is_known = True
                 else:
                     self.seen_blocks = block['height']
                     
-                block['timestamp_unix'] = block['timeStamp']
-                block['timestamp'] = self._calc_timestamp(block['timeStamp'])
+                block['timestamp_unix'] = self._calc_unix(block['timeStamp'])
+                block['timestamp'] = self._calc_timestamp(block['timestamp_unix'])
                 
                 fees_total = 0
                 
-                for tx in block['txes']:
-                    timestamps_unix = tx['timeStamp']
-                    tx['timestamp'] = self._calc_timestamp(tx['timeStamp'])
+                txes = blockData["txes"]
+                block['txes'] = []
+                for txData in txes:
+                    tx = txData['tx']
+                    tx['hash'] = txData['hash']
+                    tx['signerAddress'] = pk2address(tx['signer'])
+
+                    timestamps_unix = self._calc_unix(tx['timeStamp'])
+                    tx['timestamp'] = self._calc_timestamp(timestamps_unix)
                     tx['block'] = block['height']
                     
-                    fees_total += tx['fee']  
+                    if 'otherTrans' in tx:
+                        tx['otherTrans']['signerAddress'] = pk2address(tx['otherTrans']['signer'])
+                    if 'signatures' in tx:
+                        for sig in tx['signatures']:
+                            sig['signerAddress'] = pk2address(sig['signer'])
+                    # TODO : wrong
+                    fees_total += tx['fee']
                     
                     #save tx in redis
-                    self.redis_client.set(tx['hash'], tornado.escape.json_encode(tx))
+                    self.redis_client.set(txData['hash'], tornado.escape.json_encode(tx))
                     if not block_is_known:
                         self.redis_client.zadd('tx', timestamps_unix, tornado.escape.json_encode(tx))
                         self.redis_client.publish('tx_channel', tornado.escape.json_encode(tx))
+                    block['txes'].append(tx)
                 
                 #save blocks in redis
                 self.redis_client.zadd('blocks', block['height'], zlib.compress(tornado.escape.json_encode(block), 9))
-                self.redis_client.set(block['hash'], tornado.escape.json_encode(block))
+                self.redis_client.set(blockData['hash'], tornado.escape.json_encode(block))
                 if not block_is_known:
                     self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
                 
                 #stats
                 if block_is_known: #only use for stats at 2nd index
-                    self.redis_client.zincrby('harvesters', block['harvester'], 1.0)
-                    self.redis_client.zincrby('fees_earned', block['harvester'], fees_total)                
+                    self.redis_client.zincrby('harvesters', block['signerAddress'], 1.0)
+                    self.redis_client.zincrby('fees_earned', block['signerAddress'], 0.0)
         except:
             traceback.print_exc()
+

@@ -3,13 +3,16 @@ Distributed under the MIT License, see accompanying file LICENSE.txt
 '''
 import base64
 import hashlib
-import sha3
+import sys
+import binascii
 
+sys.path.insert(0, 'python-sha3')
+from python_sha3 import *
 
 def convert_to_address(signer):
-    pubkey = base64.b64decode(signer)
+    pubkey = binascii.unhexlify(signer)
     
-    s = hashlib.new('sha3_256')
+    s = sha3_256() #hashlib.new('sha3_256')
     s.update(pubkey)
     sha3_pubkey = s.digest()
     
@@ -19,7 +22,8 @@ def convert_to_address(signer):
     
     version = "\x98" + ripe
     
-    s2 = hashlib.new('sha3_256')
+    #s2 = hashlib.new('sha3_256')
+    s2 = sha3_256() #hashlib.new('sha3_256')
     s2.update(version)
     checksum = s2.digest()[0:4]
     

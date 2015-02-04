@@ -24,19 +24,14 @@ function HTMLRenderer(tmpl) {
 	
 	
 	this.render = function(data) {
-		
-		var html = _html_tmpl;		
-		var rex = RegExp("\\{\\w+\\}","gi");
-		var plc = html.match(rex); // find palce holders in template example: {variable_name}
-		if (! plc) return html;
-		var n = plc.length;
-		
-		for (var i = 0;i < n;i++) {
-			var key = plc[i].substring(1);
-			key = key.substring(0,key.length-1);
-			html = _self.renderItem(html,data,key);
-		}
-				
+		var html = _html_tmpl;
+		var t = Hogan.compile(html);
+		var tbl = $.extend({}, data, {
+			fee : function() { return _formatters['fee']('fee', data); },
+			amount : function() { return _formatters['amount']('amount', data); },
+		});
+		console.log("transation data:", data);
+		html = t.render(tbl);
 		return html;
 	};
 	

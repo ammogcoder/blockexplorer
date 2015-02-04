@@ -16,7 +16,7 @@
 <script type="text/javascript" src="js/d3.js"></script>
 <script type="text/javascript" src="js/dygraph-combined.js" ></script>
 <script type="text/javascript" src="js/nem-be.js"></script>
-
+<script type="text/javascript" src="js/hogan-3.0.2.min.js"></script>
 <template id="blocks">
 	<table>
 	<thead>
@@ -29,13 +29,13 @@
 	</thead>
 	<tbody>
 		<tr>
-			<td>{height}</td>
-			<td>{timestamp}</td>
-			<td>{txes}</td>
-			<td><a href="#" data-account="{harvester}">{harvester}</a></td>
+			<td>{{height}}</td>
+			<td>{{timestamp}}</td>
+			<td>{{txes.length}}</td>
+			<td><a href="#" data-account="{{signerAddress}}">{{signerAddress}}</a></td>
 		</tr>
 		<tr>
-			<td colspan="4" class="sig"><strong>hash:</strong> <a href="#" data-blockhash="{hash}">{hash}</a></td>
+			<td colspan="4" class="sig"><strong>hash:</strong> <a href="#" data-blockhash="{{hash}}">{{hash}}</a></td>
 		</tr>
 	</tbody>
 	</table>
@@ -53,16 +53,16 @@
 	</thead>
 	<tbody>
 		<tr>
-			<td>{amount}<br />{fee}</td>
-			<td>{timestamp}</td>
-			<td>{block}</td>
-			<td>{type}</td>
-			<td><a href="#" data-account="{sender}">{sender}</a><br /><a href="#" data-account="{recipient}" >{recipient}</a></td>
+			<td>{{amount}}<br />{{fee}}</td>
+			<td>{{timestamp}}</td>
+			<td>{{block}}</td>
+			<td>{{type}}</td>
+			<td><a href="#" data-account="{{signerAddress}}">{{signerAddress}}</a><br /><a href="#" data-account="{{recipient}}" >{{recipient}}</a></td>
 		</tr>
 		<tr>
 			<td colspan="5" class="sig">
-				<strong>hash:</strong> {hash}<br />
-				<strong>sig:</strong> {signature}
+				<strong>hash:</strong> {{hash}}<br />
+				<strong>sig:</strong> {{signature}}
 			</td>
 		</tr>
 	</tbody>
@@ -79,9 +79,9 @@
 	</thead>
 	<tbody>
 		<tr>
-			<td><a href="#" data-account="{address}">{address}</a></td>
-			<td>{blocks}</td>
-			<td class="fee">{fees}</td>
+			<td><a href="#" data-account="{{address}}">{{address}}</a></td>
+			<td>{{blocks}}</td>
+			<td class="fee">{{fees}}</td>
 		</tr>
 	</tbody>
 	</table>
@@ -92,30 +92,45 @@
 	<tr><td>
 		<h2>Block info:</h2>
 		<ul>
-		<li><label>Height:</label>{height}</li>
-		<li><label>Timestamp:</label>{timestamp}</li>
-		<li><label>Hash:</label>{hash}</li>
-		<li><label>Harvester:</label>{harvester}</li>
-		<li><label>Harvester PK:</label>{harvesterPk}</li>
-		<li><label>Unix Timestamp:</label>{timestamp_unix}</li>
-		<li><label>Transactions:</label>{txes}</li>
+		<li><label>Height:</label>{{height}}</li>
+		<li><label>Timestamp:</label>{{timestamp}}</li>
+		<li><label>Hash:</label>{{hash}}</li>
+		<li><label>Harvester:</label>{{signerAddress}}</li>
+		<li><label>Harvester PK:</label>{{signer}}</li>
+		<li><label>Unix Timestamp:</label>{{timestamp_unix}}</li>
+		<li><label>Transactions:</label>{{txes.length}}</li>
 		</ul>
 	</td></tr>
 	</thead>
 	<tbody>
 		<tr><td>
 		<ul>
-		<!-- <li><label>Block:</label>{block}</li> -->
-		<li><label>Timestamp:</label>{timestamp}</li>
-		<li><label>Hash:</label>{hash}</li>
-		<li><label>Sender:</label>{sender}</li>
-		<li><label>Sender PK:</label>{senderPk}</li>
-		<li><label>Recipient:</label>{recipient}</li>
-		<li><label>Amount:</label>{amount} <label>Fee:</label>{fee}</li>
-		<!-- <li><label>Type:</label>{type}</li> -->
-		<li><label>Message:</label>{message}</li>
-		<li><label>Message type:</label>{msgType}</li>
-		<li class="sig"><label>Sig:</label>{signature}</li>
+		<li><label>Type:</label>{{txtype}} <label>Timestamp:</label>{{timestamp}}</li>
+		<li><label>Hash:</label>{{hash}}</li>
+		<li><label>Sender:</label>{{signerAddress}}</li>
+		{{#otherTrans}}
+		<li><label>Multisig:</label>{{otherTrans.signerAddress}} </li>
+		<li><ul>
+			<li><label>Recipient:</label>{{otherTrans.recipient}}</li>
+			<li><label>Amount:</label>{{otherTrans.amount}} <label>Fee:</label>{{otherTrans.fee}}</li>
+			<li><label>Message:</label>{{otherTrans.messageData}}</li>
+			<li><label>Message type:</label>{{otherTrans.msgType}}</li>
+		</ul></li>
+		<li>
+			<label>Cosignatories</label><ul>
+			{{#signatures}}
+			<li>{{signerAddress}}</li>
+			{{/signatures}}
+			</ul>
+		</li>
+		{{/otherTrans}}
+		{{#recipient}}
+		<li><label>Recipient:</label>{{recipient}}</li>
+		<li><label>Amount:</label>{{amount}} <label>Fee:</label>{{fee}}</li>
+		<li><label>Message:</label>{{messageData}}</li>
+		<li><label>Message type:</label>{{msgType}}</li>
+		{{/recipient}}
+		<li class="sig"><label>Sig:</label>{{signature}}</li>
 		</ul>    
 		</td></tr>
 	</tbody>
@@ -132,19 +147,19 @@
 		<tr><td>
 		<h2>Transaction info:</h2>		
 		<ul>
-		<li><label>Block:</label>{block}</li>
-		<li><label>Timestamp:</label>{timestamp}</li>
-		<li><label>Hash:</label>{hash}</li>
-		<li><label>Sender:</label>{sender}</li>
-		<li><label>Sender PK:</label>{senderPk}</li>
-		<li><label>Recipient:</label>{recipient}</li>
-		<li><label>Amount:</label>{amount}</li>
-		<li><label>Fee:</label>{fee}</li>
-		<li><label>Type:</label>{type}</li>
-		<li><label>Message:</label><pre class="message">{message}</pre></li>
-		<li><label>Message type:</label>{msgType}</li>
+		<li><label>Block:</label>{{block}}</li>
+		<li><label>Timestamp:</label>{{timestamp}}</li>
+		<li><label>Hash:</label>{{hash}}</li>
+		<li><label>Sender:</label>{{signerAddress}}</li>
+		<li><label>Sender PK:</label>{{signer}}</li>
+		<li><label>Recipient:</label>{{recipient}}</li>
+		<li><label>Amount:</label>{{amount}}</li>
+		<li><label>Fee:</label>{{fee}}</li>
+		<li><label>Type:</label>{{type}}</li>
+		<li><label>Message:</label><pre class="message">{{message}}</pre></li>
+		<li><label>Message type:</label>{{msgType}}</li>
 		</ul>
-		<span class="sig">Sig: {signature}</span>
+		<span class="sig">Sig: {{signature}}</span>
 		</td></tr>
 	</tbody>
 	</table>
@@ -153,40 +168,40 @@
 <template id="account">
 	<h2>Account info:</h2>		
 	<ul>
-	<li><label>Status:</label>{status}</li>
-	<li><label>Address:</label>{address}</li>
-	<li><label>Balance:</label>{balance}</li>
+	<li><label>Status:</label>{{status}}</li>
+	<li><label>Address:</label>{{address}}</li>
+	<li><label>Balance:</label>{{balance}}</li>
 	<li><label>Importance:</label>
 		
 		<ul class="importance">
-		<li><b>Score:</b> {score}</li>
-		<!--li>{isSet} </li-->
-		<li><b>Page rank:</b> {page_rank}</li>
-		<li><b>Height:</b> {height}</li>
+		<li><b>Score:</b> {{score}}</li>
+		<!--li>{{isSet}} </li-->
+		<li><b>Page rank:</b> {{page_rank}}</li>
+		<li><b>Height:</b> {{height}}</li>
 		</ul>
 		
 	</li>
-	<li><label>Public Key:</label>{publicKey}</li>
-	<li><label>Label:</label>{label}</li>
-	<li><label>Harvested Blocks:</label>{foragedBlocks}</li>
-	<li><label>Messages:</label>{messages}</li>
+	<li><label>Public Key:</label>{{publicKey}}</li>
+	<li><label>Label:</label>{{label}}</li>
+	<li><label>Harvested Blocks:</label>{{foragedBlocks}}</li>
+	<li><label>Messages:</label>{{messages}}</li>
 	</ul>
-	<!--span class="sig">{payload} {type}</span-->
+	<!--span class="sig">{{payload}} {{type}}</span-->
 </template>
 <template id="accountTx">
 		<ul>
-		<li><label>Block:</label>{block}</li>
-		<li><label>Timestamp:</label>{timestamp}</li>
-		<li><label>Hash:</label>{hash}</li>
-		<li><label>Sender:</label>{sender}</li>
-		<li><label>Sender PK:</label>{signer}</li>
-		<li><label>Recipient:</label>{recipient}</li>
-		<li><label>Amount:</label>{amount}</li>
-		<li><label>Fee:</label>{fee}</li>
-		<li><label>Type:</label>{type}</li>
-		<li><label>Message:</label><pre class="message">{message}</pre></li>
-		<li><label>Message type:</label>{msgType}</li>
-		<li class="sig"><label>Sig:</label>{signature}</li>
+		<li><label>Block:</label>{{block}}</li>
+		<li><label>Timestamp:</label>{{timestamp}}</li>
+		<li><label>Hash:</label>{{hash}}</li>
+		<li><label>Sender:</label>{{signerAddress}}</li>
+		<li><label>Sender PK:</label>{{signer}}</li>
+		<li><label>Recipient:</label>{{recipient}}</li>
+		<li><label>Amount:</label>{{amount}}</li>
+		<li><label>Fee:</label>{{fee}}</li>
+		<li><label>Type:</label>{{type}}</li>
+		<li><label>Message:</label><pre class="message">{{message}}</pre></li>
+		<li><label>Message type:</label>{{msgType}}</li>
+		<li class="sig"><label>Sig:</label>{{signature}}</li>
 		</ul>
 </template>
 

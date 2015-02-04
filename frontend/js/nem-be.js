@@ -690,7 +690,6 @@ function showData() {
 
 
 function renderData(data) {
-	
 	if (! data) {
 		$("#tbl tbody").html("");
 		//$("#tbl").hide();
@@ -870,6 +869,23 @@ function hex2a(hexx) {
     return str;
 }
 
+function txtypeToString(num) {
+	switch (num) {
+		case 257:
+			return "transfer transaction";
+		case 2049:
+			return "importance transfer";
+		case 4097:
+			return "multisig account modification";
+		case 4098:
+			return "multisig signature";
+		case 4100:
+			return "multisig transaction";
+		default:
+			return "unknown transaction: " + num;
+	}
+}
+
 function showBlockInfo(data) {
 	var tmpdata = data;
 	
@@ -878,17 +894,17 @@ function showBlockInfo(data) {
 	if (g_inforndr == null) g_inforndr = new HTMLRenderer();
 	
 	g_inforndr.setTemplate(tmpl);
-	g_inforndr.addFormatter("txes", 'fmtTrans');
-	g_inforndr.addFormatter("amount", 'fmtNemValue');
-	g_inforndr.addFormatter("fee", 'fmtNemValue');
-	g_inforndr.addFormatter("timestamp", 'fmtDateTime');
-	g_inforndr.addFormatter("message", 'fmtMessage');
+	g_inforndr.addFormatter("txes", fmtTrans);
+	g_inforndr.addFormatter("amount", fmtNemValue);
+	g_inforndr.addFormatter("fee", fmtNemValue);
+	g_inforndr.addFormatter("timestamp", fmtDateTime);
+	g_inforndr.addFormatter("messageData", fmtMessage);
 
 	var html = g_inforndr.render(data);
 
 	// add formatter functions for specific data value
-	g_inforndr.addFormatter("messages", 'fmtTrans');
-	g_inforndr.addFormatter("balance", 'fmtNemValue');
+	g_inforndr.addFormatter("messages", fmtTrans);
+	g_inforndr.addFormatter("balance", fmtNemValue);
 	
 	$("body").addClass("overlay");
 	$("#info_box span").html(html);
@@ -904,8 +920,23 @@ function showBlockInfo(data) {
 	
 	html = "";
 	for(var i = 0;i < n;i++) {
-		if (txlist[i]['msgType'] == 1) {
-			txlist[i]['message'] = hex2a(txlist[i]['message']);
+		txlist[i]['txtype'] = txtypeToString(txlist[i]['type']);
+		var txMsg;
+		
+		if (txlist[i]['message']) {
+			txMsg = txlist[i];
+
+		} else if (txlist[i]['otherTrans'] && txlist[i]['otherTrans']['message']) {
+			txMsg = txlist[i]['otherTrans'];
+		}
+		if (txMsg) {
+			if (txMsg['message']['type'] == 1) {
+				txMsg['messageData'] = hex2a(txMsg['message']['payload']);
+				txMsg['msgType'] = 'plain';
+			} else {	
+				txMsg['messageData'] = txMsg['message']['payload'];
+				txMsg['msgType'] = 'encrypted';
+			}
 		}
 		html += g_inforndr.render(txlist[i]);
 	}
