@@ -15,22 +15,23 @@ function HTMLRenderer(tmpl) {
 	
 	var _self = this;
 	var _html_tmpl = tmpl;	// html template 	
-	var _formatters = new Object();
-	
+	var _formatters = {};
 	
 	this.setTemplate = function(tmpl) {
 		_html_tmpl = tmpl;
 	};
 	
-	
 	this.render = function(data) {
 		var html = _html_tmpl;
 		var t = Hogan.compile(html);
-		var tbl = $.extend({}, data, {
+		var tbl = $.extend({}, data, 
+		{
 			fee : function() { return _formatters['fee']('fee', data); },
 			amount : function() { return _formatters['amount']('amount', data); },
-		});
-		console.log("transation data:", data);
+			balance : function() { return _formatters['balance']('balance', data); },
+			signerAddress : function() { return _formatters['signerAddress']('signer', data); },
+		}
+		);
 		html = t.render(tbl);
 		return html;
 	};

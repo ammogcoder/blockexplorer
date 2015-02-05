@@ -15,8 +15,8 @@ body {
 }
 
 
-a { color: #3081C3; text-decoration: none; }
-a:hover { color: darkgreen; text-decoration: underline; }
+a { color: #dfa82f; text-decoration: none; }
+a:hover { text-decoration: underline; }
 
 /* green color scheme */	
 .green .left_sidebar {background-color:#29AD5F;}

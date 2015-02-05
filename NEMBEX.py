@@ -27,6 +27,8 @@ from handlers.ApiHandler import BlockChartHandlerCustom
 from handlers.ApiHandler import HarvesterStatsHandler
 from handlers.ApiHandler import CheckNis
 from handlers.ApiHandler import NodeListHandler
+
+from handlers.ApiHandler import TestAccountHandler
 #sockets
 from handlers.SocketHandler import LatestBlockSocket
 from handlers.SocketHandler import LatestTxSocket
@@ -74,6 +76,7 @@ if __name__ == '__main__':
          #account
          (r'/api/account', AccountHandler), 
          (r'/api/transfers', TransfersHandler),
+         (r'/api/testAcc', TestAccountHandler),
          #txs
          (r'/api/txs', FromToTxHandler),
          #search
@@ -104,6 +107,7 @@ if __name__ == '__main__':
     
     server = tornado.httpserver.HTTPServer(app, xheaders=True) 
     server.bind(options.port, '127.0.0.1')
+    print "port: ", options.port
     server.start()
     
     tornado.ioloop.IOLoop.instance().start()

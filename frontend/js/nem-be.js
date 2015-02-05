@@ -76,7 +76,7 @@ $(document).ready(function () {
 	initMsgBox();
 	initSearch();
 	initInfoBox();
-	initInfoLinks();
+	initInfoLinks("#tbl tbody");
 	initNavigation();
 	initChartBlocksRangeSelect();
 	
@@ -182,16 +182,21 @@ function initInfoBox() {
 }
 
 
-function initInfoLinks() {
+function initInfoLinks(dataLocation) {
 	
-	$("#tbl tbody").click(function(evt) {
-		
+	$(dataLocation).click(function(evt) {
 		evt.preventDefault();	
 		if (evt.target.tagName != "A") return;	
 		var acc = $(evt.target).data('account');
 		if (acc === undefined) {
 			var hash = $(evt.target).data('blockhash');
-			showBlock(hash);
+			if (hash === undefined) {
+				var txhash = $(evt.target).data('txhash');
+				showSearchResult(txhash);
+
+			} else {
+				showBlock(hash);
+			}
 
 		} else {
 			showAccount(acc);
@@ -221,7 +226,7 @@ function initSearch() {
 		if (! g_rex.test(val)) {
 			if (! g_re_height.test(val)) {
 				if (! g_re_page.test(val)) {
-					console.log(val);
+					console.log("search enty: ", val);
 					showErr("Invalid search entry!");
 				} else {
 					console.log("switch to page" + val.substr(5));
@@ -360,7 +365,7 @@ function showStats() {
 	$.get(g_api_link,params).done(function(res) {
 		//alert(res);
 		try {
-			json = JSON.parse(res);
+			json = res; //JSON.parse(res);
 			var html = "";
 			//alert(JSON.stringify(json));
 			var data = json['top10'];
@@ -401,7 +406,7 @@ function showChart() {
 	//get last block height
 	$.get("/api/last-block").done(function(res) {
 			
-		var block = JSON.parse(res);
+		var block = res; //JSON.parse(res);
 		var last_block = block.height - tot_blocks;
 		
 		// load the block times stats
@@ -412,7 +417,7 @@ function showChart() {
 		$.get("/api/stats/v2/blocktimes",params).done(function(res) {
 			
 			try {
-				var json = JSON.parse(res);
+				var json = res; //JSON.parse(res);
 				var data = json['blocktimes'];
 				
 				data = calcAvgBT(data,avg_blocks);
@@ -642,8 +647,8 @@ function calcAvgBT(data) {
 
 		var block = new Array(
 			parseInt(data[i].key),
-			data[i].value / 1000,
-			(sum_stack / avg_blocks) / 1000
+			data[i].value,
+			(sum_stack / avg_blocks)
 		);
 		
 		calc.push(block);
@@ -711,10 +716,9 @@ function renderData(data) {
 		g_htrndr.setTemplate(tmpl);
 	
 	// add formatter functions for specific data value
-	g_htrndr.addFormatter("txes", 'fmtTrans');
-	g_htrndr.addFormatter("timestamp", 'fmtDateTime');
-	g_htrndr.addFormatter("amount", 'fmtNemValue');
-	g_htrndr.addFormatter("fee", 'fmtNemValue');	
+	g_htrndr.addFormatter("signerAddress", fmtSenderT);
+	g_htrndr.addFormatter("amount", fmtNemValue);
+	g_htrndr.addFormatter("fee", fmtNemValue);	
 	
 	// render the html
 	var html = "";
@@ -748,8 +752,9 @@ function loadData(page) {
 	}).done(function(res) {
 		//alert(res);
 		try {
-			json = JSON.parse(res);
+			json=res; //JSON.parse(res);
 		} catch(e) {
+			console.log(e.message);
 			showErr(e.message);
 		}
 		
@@ -781,7 +786,7 @@ function searchData(hash) {
 	}).done(function(res) {
 		//alert(res);
 		try {
-			json = JSON.parse(res);
+			json = res; //JSON.parse(res);
 		} catch(e) {
 			showErr("Results not found!");
 			//showErr(e.message);
@@ -812,7 +817,7 @@ function showBlockByHeight(height) {
 			url		: 	URL
 	}).done(function(res) {
 		try {
-			json = JSON.parse(res);
+			json = res; //JSON.parse(res);
 			showBlockInfo(json['data'][0]);
 			
 		} catch(e) {
@@ -844,8 +849,7 @@ function showBlock(blockhash) {
 			url		: 	URL
 	}).done(function(res) {
 		try {
-			
-			json = JSON.parse(res);
+			json = res;// JSON.parse(res);
 			showBlockInfo(json);
 			
 		} catch(e) {
@@ -886,6 +890,44 @@ function txtypeToString(num) {
 	}
 }
 
+function renderTransaction(currentRenderer, tx)
+{
+
+	tx['txtype'] = txtypeToString(tx['type']);
+	var txMsg;
+	
+	if (tx['message']) {
+		txMsg = tx;
+
+	} else if (tx['otherTrans']) {
+		if (tx['otherTrans']['message']) {
+			txMsg = tx['otherTrans'];
+		}
+		for (var i = 0; i < tx['signatures'].length; ++i) {
+			var sig = tx['signatures'][i];
+			sig['ssignerAddress'] = toAddress(sig['signer']);
+		}
+	}
+	if (txMsg) {
+		if (txMsg['message']['type'] == 1) {
+			txMsg['messageData'] = hex2a(txMsg['message']['payload']);
+			txMsg['msgType'] = 'plain';
+		} else {	
+			txMsg['messageData'] = txMsg['message']['payload'];
+			txMsg['msgType'] = 'encrypted';
+		}
+	}
+
+	if (tx['modifications']) {
+		for (var i = 0; i < tx['modifications'].length; ++i) {
+			var mod = tx['modifications'][i];
+			mod['cosignatoryAccountAddress'] = toAddress(mod['cosignatoryAccount']);
+		}
+	}
+	return currentRenderer.render(tx);
+
+}
+
 function showBlockInfo(data) {
 	var tmpdata = data;
 	
@@ -894,16 +936,14 @@ function showBlockInfo(data) {
 	if (g_inforndr == null) g_inforndr = new HTMLRenderer();
 	
 	g_inforndr.setTemplate(tmpl);
-	g_inforndr.addFormatter("txes", fmtTrans);
+	g_inforndr.addFormatter("signerAddress", fmtSenderT);
 	g_inforndr.addFormatter("amount", fmtNemValue);
 	g_inforndr.addFormatter("fee", fmtNemValue);
-	g_inforndr.addFormatter("timestamp", fmtDateTime);
 	g_inforndr.addFormatter("messageData", fmtMessage);
 
 	var html = g_inforndr.render(data);
 
 	// add formatter functions for specific data value
-	g_inforndr.addFormatter("messages", fmtTrans);
 	g_inforndr.addFormatter("balance", fmtNemValue);
 	
 	$("body").addClass("overlay");
@@ -919,35 +959,19 @@ function showBlockInfo(data) {
 	var n = txlist.length;
 	
 	html = "";
-	for(var i = 0;i < n;i++) {
-		txlist[i]['txtype'] = txtypeToString(txlist[i]['type']);
-		var txMsg;
-		
-		if (txlist[i]['message']) {
-			txMsg = txlist[i];
-
-		} else if (txlist[i]['otherTrans'] && txlist[i]['otherTrans']['message']) {
-			txMsg = txlist[i]['otherTrans'];
-		}
-		if (txMsg) {
-			if (txMsg['message']['type'] == 1) {
-				txMsg['messageData'] = hex2a(txMsg['message']['payload']);
-				txMsg['msgType'] = 'plain';
-			} else {	
-				txMsg['messageData'] = txMsg['message']['payload'];
-				txMsg['msgType'] = 'encrypted';
-			}
-		}
-		html += g_inforndr.render(txlist[i]);
+	for(var i = 0;i < n;i++)
+	{
+		html += renderTransaction(g_inforndr, txlist[i]);
 	}
 	
 	$("#txes").html(html);
-
+	initInfoLinks("#info_box");
+	initInfoLinks("#txes");
 }
 
 
 function showTransactions(address) {
-	var URL = "/api/transfers";
+	var URL = "/api/testAcc";
 	var params = new Object();
 	params["address"] = address;
 	
@@ -960,8 +984,7 @@ function showTransactions(address) {
 			url		: 	URL
 	}).done(function(res) {
 		try {
-			
-			json = JSON.parse(res);
+			json = res['data']; //JSON.parse(res);
 			showTransactionsInfo(json);
 			
 		} catch(e) {
@@ -982,34 +1005,22 @@ function showTransactionsInfo(data) {
 	tmpl = $("#accountTx").html();
 	g_inforndr.setTemplate(tmpl);
 	
-	var txlist = data['data'];
+	var txlist = data;
 	var n = txlist.length;
 	
-	g_inforndr.addFormatter("txes", 'fmtTrans');
-	g_inforndr.addFormatter("timestamp", 'fmtDateTimeNIS');
-	g_inforndr.addFormatter("amount", 'fmtNemValue');
-	g_inforndr.addFormatter("fee", 'fmtNemValue');	
-	g_inforndr.addFormatter("sender", 'fmtSenderT');
-	
+	g_inforndr.addFormatter("signerAddress", fmtSenderT);
+	g_inforndr.addFormatter("amount", fmtNemValue);
+	g_inforndr.addFormatter("fee", fmtNemValue);
+	//g_inforndr
+
 	html = "";
-	var d = new Date(2014, 7, 4, 0, 0, 0, 0).getTime() / 1000;
 	for(var i = 0;i < n;i++) {
-		var curTx = txlist[i]['transaction'];
-		curTx['msgType'] = curTx['message']['type'];
-		if (curTx['message']['type'] == 1) {
-			curTx['message'] = hex2a(curTx['message']['payload']);
-		} else {
-			curTx['message'] = curTx['message']['payload'];
-		}
-		curTx['sender'] = curTx['signer'];
-		curTx['block'] = txlist[i]['meta']['height'];
-		curTx['timestamp'] = curTx['timeStamp'] + d;
-		curTx['hash'] = 'unavailable';
-		html += g_inforndr.render(curTx);
+		var curTx = txlist[i];
+		html += renderTransaction(g_inforndr, curTx);
 	}
 	
 	$("#txes").html(html);
-
+	initInfoLinks("#info_box");
 }
 
 function showAccount(address) {
@@ -1028,8 +1039,7 @@ function showAccount(address) {
 	}).done(function(res) {
 		//alert(res);
 		try {
-			
-			json = JSON.parse(res);
+			json = res; //JSON.parse(res);
 			//var data = json['account'];
 			showAccountInfo(json);
 			
@@ -1049,11 +1059,9 @@ function showAccount(address) {
 
 
 function showAccountInfo(data) {
-	
 	var tmpdata = data;
-
 	data = tmpdata['account'];
-	
+
 	data['status'] = tmpdata['meta']['status'];
 	data['height'] = data['importance']['height'];
 	data['page_rank'] = data['importance']['page-rank'];
@@ -1065,8 +1073,10 @@ function showAccountInfo(data) {
 	
 	g_inforndr.setTemplate(tmpl);
 	// add formatter functions for specific data value
-	g_inforndr.addFormatter("messages", 'fmtTrans');
-	g_inforndr.addFormatter("balance", 'fmtNemValue');
+	g_inforndr.addFormatter("signerAddress", fmtSenderT);
+	g_inforndr.addFormatter("balance", fmtNemValue);
+	g_inforndr.addFormatter("amount", fmtNemValue);
+	g_inforndr.addFormatter("fee", fmtNemValue);	
 	
 	$("#info_box span").html(g_inforndr.render(data));
 	$("#overlay").show();
@@ -1087,18 +1097,6 @@ function fmtNemValue(key,data) {
 	return o;
 }
 
-
-function fmtTrans(key,data) {
-	var o = data[key];
-	if (! o) return 0;
-	return o.length;
-}
-
-
-function fmtDateTime(key,data) {
-	return toLocalDateTime(data[key]);
-}
-
 function fmtSenderT(key,data) {
 	return toAddress(data[key]);
 }
@@ -1117,10 +1115,6 @@ var concatStepThreeAndStepSix = hex2a(versionPrefixedRipemd160Hash + stepThreeCh
 	return ret;
 }
 
-function fmtDateTimeNIS(key,data) {
-	return toLocalDateTimeNIS(data[key]);
-}
-
 function fmtMessage(key,data) {
 	
 	var msg = data[key];
@@ -1131,40 +1125,6 @@ function fmtMessage(key,data) {
 	
 	return msg;
 }
-
-function toLocalDateTimeNIS(utc_timestamp) {
-	if (! utc_timestamp) return utc_timestamp;
-
-	var date = new Date(null);
-	date.setSeconds(utc_timestamp);
-
-	return [date.toLocaleDateString(), date.toLocaleTimeString()];
-}
-
-function toLocalDateTime(utc_timestamp) {
-	
-	//console.log = utc_timestamp;
-	if (! utc_timestamp) return utc_timestamp;
-	
-	var datetime = utc_timestamp.split(' ');
-	var dp = datetime[0].split('-');
-	dp = dp.concat(datetime[1].split(':'));
-	
-	var date = new Date(Date.UTC(dp[0],dp[1]-1,dp[2],dp[3],dp[4],dp[5]));
-	
-	datetime[0] = date.toLocaleDateString();
-	datetime[1] = date.toLocaleTimeString();
-	
-	datetime = datetime.join(' ');
-	
-	return datetime;
-}
-
-
-function getData(data) {
-	return data;
-}
-
 
 function updateData(data) {
 	if (typeof data === "string") data = JSON.parse(data);
@@ -1227,7 +1187,7 @@ function connectSocket(url) {
 
 function showSearchResult(hash) {
 	
-	g_web_sock.close();
+	if (g_web_sock != null) g_web_sock.close();
 	var data = searchData(hash);
 	
 	var tbl = null;
@@ -1268,12 +1228,18 @@ function showSearchResult(hash) {
 	g_inforndr.setTemplate(tmpl);
 	// add formatter functions for specific data value
 	g_inforndr.addFormatter("txes", 'fmtTrans');
-	g_inforndr.addFormatter("amount", 'fmtNemValue');
-	g_inforndr.addFormatter("fee", 'fmtNemValue');
-	g_inforndr.addFormatter("timestamp", 'fmtDateTime');
 	g_inforndr.addFormatter("message", 'fmtMessage');
 
-	var html = g_inforndr.render(data);
+	g_inforndr.addFormatter("signerAddress", fmtSenderT);
+	g_inforndr.addFormatter("amount", fmtNemValue);
+	g_inforndr.addFormatter("fee", fmtNemValue);	
+
+	var html;
+	if (obj_type == 'tx') {
+		html = renderTransaction(g_inforndr, data);
+	} else {
+		g_inforndr.render(data);
+	}
 	
 	$("body").addClass("overlay");
 	$("#info_box span").html(html);
@@ -1290,7 +1256,7 @@ function showSearchResult(hash) {
 	
 	html = "";
 	for(var i = 0;i < n;i++) {
-		html += g_inforndr.render(txlist[i]);
+		html += renderTransaction(g_inforndr, txlist[i]);
 	}
 	
 	$("#txes").html(html);
@@ -1311,8 +1277,6 @@ function showErr(msg) {
 	$("#msgbox").addClass("err");
 	$("#msgbox span").html(msg);
 	$("#msgbox").show(500);
-	//alert(msg);
-	//console.log(msg);
 }
 
 

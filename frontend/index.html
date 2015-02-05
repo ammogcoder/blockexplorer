@@ -56,12 +56,12 @@
 			<td>{{amount}}<br />{{fee}}</td>
 			<td>{{timestamp}}</td>
 			<td>{{block}}</td>
-			<td>{{type}}</td>
+			<td>{{txtype}}</td>
 			<td><a href="#" data-account="{{signerAddress}}">{{signerAddress}}</a><br /><a href="#" data-account="{{recipient}}" >{{recipient}}</a></td>
 		</tr>
 		<tr>
 			<td colspan="5" class="sig">
-				<strong>hash:</strong> {{hash}}<br />
+				<strong>hash:</strong> <a href="#" data-txhash="{{hash}}">{{hash}}</a> <br />
 				<strong>sig:</strong> {{signature}}
 			</td>
 		</tr>
@@ -92,13 +92,13 @@
 	<tr><td>
 		<h2>Block info:</h2>
 		<ul>
-		<li><label>Height:</label>{{height}}</li>
-		<li><label>Timestamp:</label>{{timestamp}}</li>
-		<li><label>Hash:</label>{{hash}}</li>
-		<li><label>Harvester:</label>{{signerAddress}}</li>
-		<li><label>Harvester PK:</label>{{signer}}</li>
-		<li><label>Unix Timestamp:</label>{{timestamp_unix}}</li>
-		<li><label>Transactions:</label>{{txes.length}}</li>
+		<li><label>Height:</label> {{height}}</li>
+		<li><label>Timestamp:</label> {{timestamp}}</li>
+		<li><label>Hash:</label> {{hash}}</li>
+		<li><label>Harvester:</label> <a href="#" data-account="{{signerAddress}}">{{signerAddress}}</a></li>
+		<li><label>Harvester PK:</label> {{signer}}</li>
+		<li><label>Unix Timestamp:</label> {{timestamp_unix}}</li>
+		<li><label>Transactions:</label> {{txes.length}}</li>
 		</ul>
 	</td></tr>
 	</thead>
@@ -107,29 +107,37 @@
 		<ul>
 		<li><label>Type:</label>{{txtype}} <label>Timestamp:</label>{{timestamp}}</li>
 		<li><label>Hash:</label>{{hash}}</li>
-		<li><label>Sender:</label>{{signerAddress}}</li>
-		{{#otherTrans}}
+		<li><label>Sender:</label> <a href="#" data-account="{{signerAddress}}">{{signerAddress}}</a></li>
+		<li><hr></li>
+{{#modifications}}
+		<li><label>Cosignatory t{{modificationType}}</label> {{cosignatoryAccountAddress}}</li>
+{{/modifications}}
+{{#remoteAccount}}
+		<li><label>Remote Address</label> {{remoteAccountAddress}}</li>
+		<li><label>Remote PK</label> {{remoteAccount}}</li>
+{{/remoteAccount}}
+{{#otherTrans}}
 		<li><label>Multisig:</label>{{otherTrans.signerAddress}} </li>
 		<li><ul>
-			<li><label>Recipient:</label>{{otherTrans.recipient}}</li>
+			<li><label>Recipient:</label> <a href="#" data-account="{{otherTrans.recipient}}">{{otherTrans.recipient}}</a></li>
 			<li><label>Amount:</label>{{otherTrans.amount}} <label>Fee:</label>{{otherTrans.fee}}</li>
 			<li><label>Message:</label>{{otherTrans.messageData}}</li>
 			<li><label>Message type:</label>{{otherTrans.msgType}}</li>
 		</ul></li>
 		<li>
 			<label>Cosignatories</label><ul>
-			{{#signatures}}
-			<li>{{signerAddress}}</li>
-			{{/signatures}}
+	{{#signatures}}
+			<li><a href="#" data-account="{{ssignerAddress}}">{{ssignerAddress}}</a></li>
+	{{/signatures}}
 			</ul>
 		</li>
-		{{/otherTrans}}
-		{{#recipient}}
-		<li><label>Recipient:</label>{{recipient}}</li>
+{{/otherTrans}}
+{{#recipient}}
+		<li><label>Recipient:</label> <a href="#" data-account="{{recipient}}">{{recipient}}</a></li>
 		<li><label>Amount:</label>{{amount}} <label>Fee:</label>{{fee}}</li>
 		<li><label>Message:</label>{{messageData}}</li>
 		<li><label>Message type:</label>{{msgType}}</li>
-		{{/recipient}}
+{{/recipient}}
 		<li class="sig"><label>Sig:</label>{{signature}}</li>
 		</ul>    
 		</td></tr>
@@ -147,17 +155,42 @@
 		<tr><td>
 		<h2>Transaction info:</h2>		
 		<ul>
-		<li><label>Block:</label>{{block}}</li>
-		<li><label>Timestamp:</label>{{timestamp}}</li>
-		<li><label>Hash:</label>{{hash}}</li>
-		<li><label>Sender:</label>{{signerAddress}}</li>
-		<li><label>Sender PK:</label>{{signer}}</li>
-		<li><label>Recipient:</label>{{recipient}}</li>
+		<li><label>Block:</label> {{block}}</li>
+		<li><label>Type:</label>{{txtype}} <label>Timestamp:</label>{{timestamp}}</li>
+		<li><label>Hash:</label> {{hash}}</li>
+		<li><label>Sender:</label> <a href="#" data-account="{{signerAddress}}">{{signerAddress}}</a></li>
+		<li><label>Sender PK:</label> {{signer}}</li>
+		<li><label>Fee:</label> {{fee}}</li>
+		<li><hr></li>
+{{#modifications}}
+		<li><label>Cosignatory t{{modificationType}}</label> {{cosignatoryAccountAddress}}</li>
+{{/modifications}}
+{{#remoteAccount}}
+		<li><label>Remote Address</label> {{remoteAccountAddress}}</li>
+		<li><label>Remote PK</label> {{remoteAccount}}</li>
+{{/remoteAccount}}
+{{#otherTrans}}
+		<li><label>Multisig:</label>{{otherTrans.signerAddress}} </li>
+		<li><ul>
+			<li><label>Recipient:</label> <a href="#" data-account="{{otherTrans.recipient}}">{{otherTrans.recipient}}</a></li>
+			<li><label>Amount:</label>{{otherTrans.amount}} <label>Fee:</label>{{otherTrans.fee}}</li>
+			<li><label>Message:</label>{{otherTrans.messageData}}</li>
+			<li><label>Message type:</label>{{otherTrans.msgType}}</li>
+		</ul></li>
+		<li>
+			<label>Cosignatories</label><ul>
+	{{#signatures}}
+			<li><a href="#" data-account="{{ssignerAddress}}">{{ssignerAddress}}</a></li>
+	{{/signatures}}
+			</ul>
+		</li>
+{{/otherTrans}}
+{{#recipient}}
+		<li><label>Recipient:</label> <a href="#" data-account="{{recipient}}">{{recipient}}</a></li>
 		<li><label>Amount:</label>{{amount}}</li>
-		<li><label>Fee:</label>{{fee}}</li>
-		<li><label>Type:</label>{{type}}</li>
-		<li><label>Message:</label><pre class="message">{{message}}</pre></li>
+		<li><label>Message:</label><pre class="message">{{messageData}}</pre></li>
 		<li><label>Message type:</label>{{msgType}}</li>
+{{/recipient}}
 		</ul>
 		<span class="sig">Sig: {{signature}}</span>
 		</td></tr>
@@ -168,39 +201,53 @@
 <template id="account">
 	<h2>Account info:</h2>		
 	<ul>
-	<li><label>Status:</label>{{status}}</li>
-	<li><label>Address:</label>{{address}}</li>
-	<li><label>Balance:</label>{{balance}}</li>
-	<li><label>Importance:</label>
-		
-		<ul class="importance">
-		<li><b>Score:</b> {{score}}</li>
-		<!--li>{{isSet}} </li-->
-		<li><b>Page rank:</b> {{page_rank}}</li>
-		<li><b>Height:</b> {{height}}</li>
-		</ul>
-		
-	</li>
+	<li><label>Status:</label> {{status}}</li>
+	<li><label>Address:</label> {{address}}</li>
 	<li><label>Public Key:</label>{{publicKey}}</li>
+	<li><label>Balance:</label> {{balance}}</li>
+	<li><label>Importance:</label> {{importance}}</li>
 	<li><label>Label:</label>{{label}}</li>
-	<li><label>Harvested Blocks:</label>{{foragedBlocks}}</li>
-	<li><label>Messages:</label>{{messages}}</li>
+	<li><label>Harvested Blocks:</label>{{harvestedBlocks}}</li>
 	</ul>
-	<!--span class="sig">{{payload}} {{type}}</span-->
 </template>
 <template id="accountTx">
 		<ul>
-		<li><label>Block:</label>{{block}}</li>
-		<li><label>Timestamp:</label>{{timestamp}}</li>
+		<li><label>Block:</label> {{block}}</li>
+		<li><label>Type:</label>{{txtype}} <label>Timestamp:</label>{{timestamp}}</li>
 		<li><label>Hash:</label>{{hash}}</li>
-		<li><label>Sender:</label>{{signerAddress}}</li>
+		<li><label>Sender:</label> <a href="#" data-account="{{signerAddress}}">{{signerAddress}}</a></li>
 		<li><label>Sender PK:</label>{{signer}}</li>
-		<li><label>Recipient:</label>{{recipient}}</li>
-		<li><label>Amount:</label>{{amount}}</li>
 		<li><label>Fee:</label>{{fee}}</li>
-		<li><label>Type:</label>{{type}}</li>
-		<li><label>Message:</label><pre class="message">{{message}}</pre></li>
+		<li><hr></li>
+{{#modifications}}
+		<li><label>Cosignatory t{{modificationType}}</label> {{cosignatoryAccountAddress}}</li>
+{{/modifications}}
+{{#remoteAccount}}
+		<li><label>Remote Address</label> {{remoteAccountAddress}}</li>
+		<li><label>Remote PK</label> {{remoteAccount}}</li>
+{{/remoteAccount}}
+{{#otherTrans}}
+		<li><label>Multisig:</label>{{otherTrans.signerAddress}} </li>
+		<li><ul>
+			<li><label>Recipient:</label> <a href="#" data-account="{{otherTrans.recipient}}">{{otherTrans.recipient}}</a></li>
+			<li><label>Amount:</label>{{otherTrans.amount}} <label>Fee:</label>{{otherTrans.fee}}</li>
+			<li><label>Message:</label>{{otherTrans.messageData}}</li>
+			<li><label>Message type:</label>{{otherTrans.msgType}}</li>
+		</ul></li>
+		<li>
+			<label>Cosignatories</label><ul>
+	{{#signatures}}
+			<li><a href="#" data-account="{{ssignerAddress}}">{{ssignerAddress}}</a></li>
+	{{/signatures}}
+			</ul>
+		</li>
+{{/otherTrans}}
+{{#recipient}}
+		<li><label>Recipient:</label> <a href="#" data-account="{{recipient}}">{{recipient}}</a></li>
+		<li><label>Amount:</label>{{amount}}</li>
+		<li><label>Message:</label><pre class="message">{{messageData}}</pre></li>
 		<li><label>Message type:</label>{{msgType}}</li>
+{{/recipient}}
 		<li class="sig"><label>Sig:</label>{{signature}}</li>
 		</ul>
 </template>

@@ -20,10 +20,18 @@ class BlockAfterHandler(BaseHandler):
 		self.finish()
 		
 class LastBlockHandler(BaseHandler):
-	
 	def get(self):
 		self.write(zlib.decompress(self.redis_client.zrange('blocks', 0, 2, 'desc')[0]))
 		
+class TestAccountHandler(BaseHandler):
+	def get(self):
+		addr = self.get_argument('address')
+		txs = self.redis_client.zrange('acc'+addr, 0, 20, 'desc')
+		txs = [json.loads(tx) for tx in txs]
+		txs = json.dumps({'data':txs})
+		self.write(txs)
+
+
 class SearchHandler(BaseHandler):
 	@tornado.gen.coroutine
 	def get(self):
