@@ -30,7 +30,11 @@ class AHttpApi():
         
     def getlastblock(self):
         return self._getrequest('/chain/last-block/')
-    
+
+    def getfirstblock(self):
+   	data = json.dumps({'height':1})
+        return self._postrequest('/block/at/public', data)
+ 
     def getblocksafter(self, height):
         data = json.dumps({'height': height})
         return self._postrequest('/local/chain/blocks-after/', data)

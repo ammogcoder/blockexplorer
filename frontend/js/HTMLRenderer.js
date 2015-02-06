@@ -27,6 +27,7 @@ function HTMLRenderer(tmpl) {
 		var tbl = $.extend({}, data, 
 		{
 			fee : function() { return _formatters['fee']('fee', data); },
+			fees : function() { return _formatters['fees']('fees', data); },
 			amount : function() { return _formatters['amount']('amount', data); },
 			balance : function() { return _formatters['balance']('balance', data); },
 			signerAddress : function() { return _formatters['signerAddress']('signer', data); },

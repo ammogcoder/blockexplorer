@@ -40,8 +40,7 @@ class RedisConnector(BasePeriodic):
 		address=pk2address(pk)
 		self._addAccountTx(address, tx)
 
-	def _processAccounts(self, srcTx, tx):
-		print srcTx
+	def _processTransaction(self, srcTx, tx):
 		self.addAccountTx(srcTx['signer'], tx)
 		if 'remoteAccount' in srcTx:
 			self.addAccountTx(tx['signer'], tx)
@@ -51,14 +50,113 @@ class RedisConnector(BasePeriodic):
 		if 'recipient' in srcTx:
 			self._addAccountTx(srcTx['recipient'], tx)
 
-	def processAccounts(self, tx):
-		self._processAccounts(tx, tx)
+	def nemSub(self, address, amount):
+		self.redis_client.zincrby('nem_sent', address, amount)
+
+	def nemAdd(self, address, amount):
+		self.redis_client.zincrby('nem_recv', address, amount)
+
+	def processNemFlow(self, tx):
+		txtype = tx['type']
+		# transfer transaction
+		if txtype == 257:
+			self.nemSub(pk2address(tx['signer']), tx['fee']);
+			self.nemSub(pk2address(tx['signer']), tx['amount']);
+			self.nemAdd(tx['recipient'], tx['amount'])
+		# importance transfer
+		elif txtype == 2049:
+			self.nemSub(pk2address(tx['signer']), tx['fee']);
+		# aggregate
+		elif txtype == 4097:
+			self.nemSub(pk2address(tx['signer']), tx['fee']);
+		# sig - won't happen
+		elif txtype == 4098:
+			pass
+		# MT
+		elif txtype == 4100:
+			# charge multisig account
+			self.nemSub(pk2address(tx['otherTrans']['signer']), tx['fee']);
+			for sig in tx['signatures']:
+				self.nemSub(pk2address(tx['otherTrans']['signer']), sig['fee']);
+
+			processNemFlow(self, tx['otherTrans'])
+
+	def processTransaction(self, tx):
+		self.processNemFlow(tx)
+		self._processTransaction(tx, tx)
 		if 'otherTrans' in tx:
-			self._processAccounts(tx['otherTrans'], tx)
+			self._processTransaction(tx['otherTrans'], tx)
 
 		if 'signatures' in tx:
 			for sig in tx['signatures']:
 				addAccountTx(sig['signer'], tx)
+
+	def calculateFee(self, tx):
+		fee = tx['fee']
+		if 'otherTrans' in tx:
+			fee += tx['otherTrans']['fee']
+
+		if 'signatures' in tx:
+			for sig in tx['signatures']:
+				fee += sig['fee']
+		return fee
+
+	def processBlock(self, blockData):
+		block = blockData["block"] 
+		block_is_known = False
+		blockHarvesterAddress = pk2address(block['signer'])
+		print "block height:", block['height'], blockHarvesterAddress
+		
+		block['hash'] = blockData['hash']
+		
+		if self.seen_blocks >= block['height']:
+			block_is_known = True
+		else:
+			self.seen_blocks = block['height']
+			
+		block['timestamp_unix'] = self._calc_unix(block['timeStamp'])
+		block['timestamp'] = self._calc_timestamp(block['timestamp_unix'])
+		
+		fees_total = 0
+		
+		txes = blockData["txes"]
+		block['txes'] = []
+		
+		for txData in txes:
+			if not ('tx' in txData):
+				tx = txData
+				txData = {}
+				txData['tx'] = tx
+				txData['hash'] = tx['signature'][0:64]
+			tx = txData['tx']
+			tx['hash'] = txData['hash']
+
+			timestamps_unix = self._calc_unix(tx['timeStamp'])
+			tx['timestamp'] = self._calc_timestamp(timestamps_unix)
+			tx['block'] = block['height']
+			
+			fees_total += self.calculateFee(tx);
+			
+			#save tx in redis
+			self.redis_client.set(txData['hash'], tornado.escape.json_encode(tx))
+			if not block_is_known:
+				self.redis_client.zadd('tx', timestamps_unix, tornado.escape.json_encode(tx))
+				self.redis_client.publish('tx_channel', tornado.escape.json_encode(tx))
+
+				self.processTransaction(tx)
+			block['txes'].append(tx)
+		
+		#save blocks in redis
+		self.redis_client.zadd('blocks', block['height'], zlib.compress(tornado.escape.json_encode(block), 9))
+		self.redis_client.set(blockData['hash'], tornado.escape.json_encode(block))
+		if not block_is_known:
+			self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
+		
+		#stats
+		if block_is_known: #only use for stats at 2nd index
+			self.redis_client.zincrby('harvesters', blockHarvesterAddress, 1.0)
+			self.redis_client.zincrby('fees_earned', blockHarvesterAddress, fees_total)
+
 
 	@tornado.gen.coroutine
 	def run(self):
@@ -72,59 +170,17 @@ class RedisConnector(BasePeriodic):
 		except:
 			traceback.print_exc() 
 		try:
+			if self.redis_client.zcard('blocks') == 0:
+				response = yield self.api.getfirstblock()
+				blockData = {}
+				blockData["block"] = json.loads(response.body)
+				blockData["txes"] = blockData['block']['transactions']
+				blockData['hash'] = blockData['block']['signature'][0:64]
+				self.processBlock(blockData)
+
 			response = yield self.api.getblocksafter(self._get_height())
-			#print response.body
-			
 			for blockData in json.loads(response.body)['data']:
-				block_is_known = False
-				block = blockData["block"] 
-				blockHarvesterAddress = pk2address(block['signer'])
-				print "block height:", block['height'], blockHarvesterAddress
-				block['hash'] = blockData['hash']
-				
-				if self.seen_blocks >= block['height']:
-					block_is_known = True
-				else:
-					self.seen_blocks = block['height']
-					
-				block['timestamp_unix'] = self._calc_unix(block['timeStamp'])
-				block['timestamp'] = self._calc_timestamp(block['timestamp_unix'])
-				
-				fees_total = 0
-				
-				txes = blockData["txes"]
-				block['txes'] = []
-				for txData in txes:
-					tx = txData['tx']
-					print tx
-					tx['hash'] = txData['hash']
-
-					timestamps_unix = self._calc_unix(tx['timeStamp'])
-					tx['timestamp'] = self._calc_timestamp(timestamps_unix)
-					tx['block'] = block['height']
-					
-					# TODO : wrong
-					fees_total += tx['fee']
-					
-					#save tx in redis
-					self.redis_client.set(txData['hash'], tornado.escape.json_encode(tx))
-					if not block_is_known:
-						self.redis_client.zadd('tx', timestamps_unix, tornado.escape.json_encode(tx))
-						self.redis_client.publish('tx_channel', tornado.escape.json_encode(tx))
-
-						self.processAccounts(tx)
-					block['txes'].append(tx)
-				
-				#save blocks in redis
-				self.redis_client.zadd('blocks', block['height'], zlib.compress(tornado.escape.json_encode(block), 9))
-				self.redis_client.set(blockData['hash'], tornado.escape.json_encode(block))
-				if not block_is_known:
-					self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
-				
-				#stats
-				if block_is_known: #only use for stats at 2nd index
-					self.redis_client.zincrby('harvesters', blockHarvesterAddress, 1.0)
-					self.redis_client.zincrby('fees_earned', blockHarvesterAddress, 0.0)
+				self.processBlock(blockData)
 		except:
 			traceback.print_exc()
 

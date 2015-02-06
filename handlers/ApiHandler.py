@@ -58,8 +58,13 @@ class AccountHandler(BaseHandler):
 	
 	@tornado.gen.coroutine
 	def get(self):
-		response = yield self.api.getaccount(self.get_argument('address'))
-		self.write(response.body)
+		address = self.get_argument('address')
+		response = yield self.api.getaccount(address)
+		data = json.loads(response.body)
+		data['meta']['in'] = self.redis_client.zscore('nem_recv', address)
+		data['meta']['out'] = self.redis_client.zscore('nem_sent', address)
+		data['meta']['harvest'] = self.redis_client.zscore('fees_earned', address)
+		self.write(json.dumps(data))
 		self.finish()
 
 class TransfersHandler(BaseHandler):
@@ -155,19 +160,19 @@ class HarvesterStatsHandler(BaseHandler):
 	
 	def get(self):
 		sortby = self.get_argument('sortby', '')
-		result = {'top10': []}
+		result = {'top50': []}
 		
 		if sortby in ('blocks', ''):
-			harvesters = self.redis_client.zrange('harvesters', 0, 9, 'desc', 'WITHSCORES')
+			harvesters = self.redis_client.zrange('harvesters', 0, 49, 'desc', 'WITHSCORES')
 			for harvester in harvesters:
 				fees = self.redis_client.zscore('fees_earned', harvester[0])
-				result['top10'].append({'address': harvester[0], 'blocks': int(harvester[1]), 'fees': int(fees)})
+				result['top50'].append({'address': harvester[0], 'blocks': int(harvester[1]), 'fees': int(fees)})
 		
 		elif sortby == 'fees':
-			harvesters = self.redis_client.zrange('fees_earned', 0, 9, 'desc', 'WITHSCORES')
+			harvesters = self.redis_client.zrange('fees_earned', 0, 49, 'desc', 'WITHSCORES')
 			for harvester in harvesters:
 				blocks = self.redis_client.zscore('harvesters', harvester[0])
-				result['top10'].append({'address': harvester[0], 'blocks': int(blocks), 'fees': int(harvester[1])})
+				result['top50'].append({'address': harvester[0], 'blocks': int(blocks), 'fees': int(harvester[1])})
 		
 		self.write(json.dumps(result))
 			

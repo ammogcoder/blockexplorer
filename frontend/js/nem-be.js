@@ -77,6 +77,7 @@ $(document).ready(function () {
 	initSearch();
 	initInfoBox();
 	initInfoLinks("#tbl tbody");
+	initInfoLinks("#info_box");
 	initNavigation();
 	initChartBlocksRangeSelect();
 	
@@ -337,7 +338,7 @@ function showStats() {
 	
 	if (g_htrndr == null) g_htrndr = new HTMLRenderer();
 	g_htrndr.setTemplate(tmpl);
-	g_htrndr.addFormatter("fees", 'fmtNemValue');	
+	g_htrndr.addFormatter("fees", fmtNemValue);
 	
 	
 	var params = new Object();
@@ -368,7 +369,7 @@ function showStats() {
 			json = res; //JSON.parse(res);
 			var html = "";
 			//alert(JSON.stringify(json));
-			var data = json['top10'];
+			var data = json['top50'];
 			for (var i = 0;i < data.length;i++) {
 				html += g_htrndr.render(data[i]);
 			}
@@ -900,13 +901,22 @@ function renderTransaction(currentRenderer, tx)
 		txMsg = tx;
 
 	} else if (tx['otherTrans']) {
-		if (tx['otherTrans']['message']) {
-			txMsg = tx['otherTrans'];
+		var innerTx = tx['otherTrans'];
+		innerTx['signerAddress'] = toAddress(innerTx['signer']);
+		if (innerTx['message']) {
+			txMsg = innerTx;
 		}
+		var totalFee = tx['fee'];
 		for (var i = 0; i < tx['signatures'].length; ++i) {
 			var sig = tx['signatures'][i];
 			sig['ssignerAddress'] = toAddress(sig['signer']);
+			totalFee += sig['fee'];
 		}
+		// can we do it differently? (calls to _fmt...)
+		tx['totalFee'] =  _fmtNemValue(totalFee + innerTx['fee']);
+		innerTx['amount'] = _fmtNemValue(innerTx['amount']);
+		innerTx['fee'] = _fmtNemValue(innerTx['fee']);
+		innerTx['multisigFees'] =  _fmtNemValue(totalFee);
 	}
 	if (txMsg) {
 		if (txMsg['message']['type'] == 1) {
@@ -965,8 +975,6 @@ function showBlockInfo(data) {
 	}
 	
 	$("#txes").html(html);
-	initInfoLinks("#info_box");
-	initInfoLinks("#txes");
 }
 
 
@@ -1020,7 +1028,6 @@ function showTransactionsInfo(data) {
 	}
 	
 	$("#txes").html(html);
-	initInfoLinks("#info_box");
 }
 
 function showAccount(address) {
@@ -1066,6 +1073,12 @@ function showAccountInfo(data) {
 	data['height'] = data['importance']['height'];
 	data['page_rank'] = data['importance']['page-rank'];
 	data['score'] = data['importance']['score'];
+
+	console.log('account data', tmpdata);
+	data['nemin'] = _fmtNemValue(tmpdata['meta']['in']);
+	data['nemout'] = _fmtNemValue(tmpdata['meta']['out']);
+	data['nemhar'] = _fmtNemValue(tmpdata['meta']['harvest']);
+	data['nembal'] = _fmtNemValue(tmpdata['meta']['in'] - tmpdata['meta']['out'] + tmpdata['meta']['harvest']);
 	
 	if (g_inforndr == null) g_inforndr = new HTMLRenderer();
 	
@@ -1088,12 +1101,18 @@ function showAccountInfo(data) {
 
 
 function fmtNemValue(key,data) {
-	var o = data[key];
-	if (! o) return "0.000000";
+	return _fmtNemValue(data[key]);
+}
+function _fmtNemValue(o) {
+	if (! o) return "0.<span class='dim'>000000</span>";
 	
 	o = o / 1000000;
-	var r = o.toFixed(6);
-	o = "" + r;
+	var r = o.toFixed(6).replace(/\./, ".<span class='dim'>");
+	if (r.match(/span/) === null) {
+		o = "" + r;
+	} else {
+		o = "" + r + "</span>";
+	}
 	return o;
 }
 
@@ -1238,7 +1257,7 @@ function showSearchResult(hash) {
 	if (obj_type == 'tx') {
 		html = renderTransaction(g_inforndr, data);
 	} else {
-		g_inforndr.render(data);
+		html = g_inforndr.render(data);
 	}
 	
 	$("body").addClass("overlay");
