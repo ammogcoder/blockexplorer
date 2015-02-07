@@ -38,8 +38,14 @@ class SearchHandler(BaseHandler):
 		searchstring = self.get_argument('q')
 		#decide if address or hash and act accordingly
 		if re.match('T[A-Z0-9]+', searchstring):
-			response = yield self.api.getaccount(searchstring)
-			self.write(response.body)
+			address = searchstring
+			response = yield self.api.getaccount(address)
+			data = json.loads(response.body)
+			data['meta']['in'] = self.redis_client.zscore('nem_recv', address)
+			data['meta']['out'] = self.redis_client.zscore('nem_sent', address)
+			data['meta']['harvest'] = self.redis_client.zscore('fees_earned', address)
+			self.write(json.dumps(data))
+
 		else:
 			self.write(self.redis_client.get(searchstring))
 
@@ -55,7 +61,6 @@ class SearchTxByHashHandler(BaseHandler):
 		self.write(self.redis_client.get(hash))
 		
 class AccountHandler(BaseHandler):
-	
 	@tornado.gen.coroutine
 	def get(self):
 		address = self.get_argument('address')

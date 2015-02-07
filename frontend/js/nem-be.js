@@ -1073,8 +1073,9 @@ function showAccountInfo(data) {
 	data['height'] = data['importance']['height'];
 	data['page_rank'] = data['importance']['page-rank'];
 	data['score'] = data['importance']['score'];
+	data['importance'] = _fmtNemImportance(data['importance'] * 1000);
 
-	console.log('account data', tmpdata);
+	data['multisigAccounts'] = tmpdata['meta']['cosignatoryOf'];
 	data['nemin'] = _fmtNemValue(tmpdata['meta']['in']);
 	data['nemout'] = _fmtNemValue(tmpdata['meta']['out']);
 	data['nemhar'] = _fmtNemValue(tmpdata['meta']['harvest']);
@@ -1103,6 +1104,7 @@ function showAccountInfo(data) {
 function fmtNemValue(key,data) {
 	return _fmtNemValue(data[key]);
 }
+
 function _fmtNemValue(o) {
 	if (! o) return "0.<span class='dim'>000000</span>";
 	
@@ -1115,6 +1117,20 @@ function _fmtNemValue(o) {
 	}
 	return o;
 }
+
+function _fmtNemImportance(o) {
+	if (! o) return "0.<span class='dim'>000000</span>";
+	
+	var r = o.toString().replace(/\.(..)/, ".$1<span class='dim'>");
+	if (r.match(/span/) === null) {
+		o = "" + r;
+	} else {
+		o = "" + r + "</span>";
+	}
+	return o;
+}
+
+
 
 function fmtSenderT(key,data) {
 	return toAddress(data[key]);

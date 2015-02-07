@@ -18,7 +18,16 @@ class RedisConnector(BasePeriodic):
 		self.runs = 0
 		self.seen_blocks = 0
 		self.nemEpoch = datetime.datetime(2015, 2, 1, 0, 0, 0, 0, None)
+		self.lastHeight = 1
+		self.findLastHeight()
 	
+	def findLastHeight(self):
+		while len(self.redis_client.zrangebyscore('blocks', self.lastHeight, self.lastHeight)) >= 1:
+			self.lastHeight += 1
+			if (self.lastHeight % 256) == 0:
+				print "got ",self.lastHeight,
+				print int(json.loads(zlib.decompress(self.redis_client.zrangebyscore('blocks', self.lastHeight, self.lastHeight)[0]))['height'])
+
 	def _get_height(self):
 		if self.redis_client.zcard('blocks') == 0:
 			return 1 
@@ -79,7 +88,7 @@ class RedisConnector(BasePeriodic):
 			for sig in tx['signatures']:
 				self.nemSub(pk2address(tx['otherTrans']['signer']), sig['fee']);
 
-			processNemFlow(self, tx['otherTrans'])
+			self.processNemFlow(tx['otherTrans'])
 
 	def processTransaction(self, tx):
 		self.processNemFlow(tx)
@@ -89,7 +98,7 @@ class RedisConnector(BasePeriodic):
 
 		if 'signatures' in tx:
 			for sig in tx['signatures']:
-				addAccountTx(sig['signer'], tx)
+				self.addAccountTx(sig['signer'], tx)
 
 	def calculateFee(self, tx):
 		fee = tx['fee']
@@ -103,16 +112,21 @@ class RedisConnector(BasePeriodic):
 
 	def processBlock(self, blockData):
 		block = blockData["block"] 
-		block_is_known = False
 		blockHarvesterAddress = pk2address(block['signer'])
-		print "block height:", block['height'], blockHarvesterAddress
+		print "block height:", block['height'], blockHarvesterAddress,
 		
 		block['hash'] = blockData['hash']
-		
-		if self.seen_blocks >= block['height']:
-			block_is_known = True
-		else:
-			self.seen_blocks = block['height']
+
+		if len(self.redis_client.zrangebyscore('blocks', block['height'], block['height'])) >= 1:
+			print int(json.loads(zlib.decompress(self.redis_client.zrangebyscore('blocks', block['height'], block['height'])[0]))['height'])
+			self.lastHeight = block['height']
+			return
+		print "provessing block height:", block['height'], blockHarvesterAddress
+
+		#if self.seen_blocks >= block['height']:
+		#	return
+		#else:
+		#	self.seen_blocks = block['height']
 			
 		block['timestamp_unix'] = self._calc_unix(block['timeStamp'])
 		block['timestamp'] = self._calc_timestamp(block['timestamp_unix'])
@@ -139,23 +153,20 @@ class RedisConnector(BasePeriodic):
 			
 			#save tx in redis
 			self.redis_client.set(txData['hash'], tornado.escape.json_encode(tx))
-			if not block_is_known:
-				self.redis_client.zadd('tx', timestamps_unix, tornado.escape.json_encode(tx))
-				self.redis_client.publish('tx_channel', tornado.escape.json_encode(tx))
-
-				self.processTransaction(tx)
+			self.redis_client.zadd('tx', timestamps_unix, tornado.escape.json_encode(tx))
+			self.redis_client.publish('tx_channel', tornado.escape.json_encode(tx))
+			self.processTransaction(tx)
 			block['txes'].append(tx)
 		
 		#save blocks in redis
 		self.redis_client.zadd('blocks', block['height'], zlib.compress(tornado.escape.json_encode(block), 9))
+		print "after add",  len(self.redis_client.zrangebyscore('blocks', block['height'], block['height']))
+
 		self.redis_client.set(blockData['hash'], tornado.escape.json_encode(block))
-		if not block_is_known:
-			self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
+		self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
 		
-		#stats
-		if block_is_known: #only use for stats at 2nd index
-			self.redis_client.zincrby('harvesters', blockHarvesterAddress, 1.0)
-			self.redis_client.zincrby('fees_earned', blockHarvesterAddress, fees_total)
+		self.redis_client.zincrby('harvesters', blockHarvesterAddress, 1.0)
+		self.redis_client.zincrby('fees_earned', blockHarvesterAddress, fees_total)
 
 
 	@tornado.gen.coroutine
@@ -178,9 +189,12 @@ class RedisConnector(BasePeriodic):
 				blockData['hash'] = blockData['block']['signature'][0:64]
 				self.processBlock(blockData)
 
-			response = yield self.api.getblocksafter(self._get_height())
+			height = self.lastHeight
+			print "getting blocks at ", height
+			response = yield self.api.getblocksafter(height)
 			for blockData in json.loads(response.body)['data']:
 				self.processBlock(blockData)
 		except:
+			print "exception"
 			traceback.print_exc()
 

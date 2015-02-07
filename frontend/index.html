@@ -212,9 +212,14 @@
 	<li><label>Public Key:</label>{{publicKey}}</li>
 	<li><label>Balance (network):</label> {{{balance}}}</li>
 	<li><label>Balance (nembex):</label> {{{nembal}}} (in: {{{nemin}}} out: {{{nemout}}} harvested: {{{nemhar}}})</li>
-	<li><label>Importance:</label> {{importance}}</li>
+	<li><label>Importance:</label> {{{importance}}} &permil;</li>
 	<li><label>Label:</label>{{label}}</li>
 	<li><label>Harvested Blocks:</label>{{harvestedBlocks}}</li>
+	<li><label>Is cosignatory of:</label><ul>
+	{{#multisigAccounts}}
+		<li><a href="#" data-account="{{address}}">{{address}}</a></li>
+	{{/multisigAccounts}}
+	</ul></li>
 	</ul>
 </template>
 <template id="accountTx">
