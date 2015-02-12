@@ -15,8 +15,9 @@
 <script type="text/javascript" src="js/HTMLRenderer.js"></script>
 <script type="text/javascript" src="js/d3.js"></script>
 <script type="text/javascript" src="js/dygraph-combined.js" ></script>
-<script type="text/javascript" src="js/nem-be.js"></script>
+<script type="text/javascript" src="js/xbbcode.js"></script>
 <script type="text/javascript" src="js/hogan-3.0.2.min.js"></script>
+<script type="text/javascript" src="js/nem-be.js"></script>
 <template id="blocks">
 	<table>
 	<thead>
@@ -64,6 +65,28 @@
 				<strong>hash:</strong> <a href="#" data-txhash="{{hash}}">{{hash}}</a> <br />
 				<strong>sig:</strong> {{signature}}
 			</td>
+		</tr>
+	</tbody>
+	</table>
+</template>
+<template id="nodes">
+	<table>
+	<thead>
+		<tr>
+			<th>#</th>
+			<th data-sort="BY_ADDRESS">address</th>
+			<th data-sort="BY_NAME">name</th>
+			<th data-sort="BY_VERSION" class="sortable">version</th>
+			<th data-sort="BY_HEIGHT">height</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>{{idx}}</td>
+			<td>{{endpoint.host}}:<span style='color:#888'>{{endpoint.port}}</span></td>
+			<td>{{{identity.name}}}</td>
+			<td>{{metaData.version}}</td>
+			<td>{{{metaData.height}}}</td>
 		</tr>
 	</tbody>
 	</table>
@@ -119,10 +142,16 @@
 {{#otherTrans}}
 		<li><ul>
 			<li><label>Multisig:</label>{{otherTrans.signerAddress}} </li>
+			<li><label>Type:</label>{{otherTrans.txtype}} </li>
+	{{#otherTrans.modifications}}
+			<li><label>Cosignatory {{modificationType}}</label> <a href="#" data-account="{{cosignatoryAccountAddress}}">{{cosignatoryAccountAddress}}</a></li>
+	{{/otherTrans.modifications}}
+	{{#otherTrans.recipient}}
 			<li><label>Recipient:</label> <a href="#" data-account="{{otherTrans.recipient}}">{{otherTrans.recipient}}</a></li>
 			<li><label>Amount:</label>{{{otherTrans.amount}}} <label>Inner fee:</label>{{{otherTrans.fee}}}</li>
 			<li><label>Message:</label>{{otherTrans.messageData}}</li>
 			<li><label>Message type:</label>{{otherTrans.msgType}}</li>
+	{{/otherTrans.recipient}}
 			<li><label>Total multisig fees:</label><strong>{{{otherTrans.multisigFees}}}</strong></li>
 		</ul></li>
 		<li><ul>
@@ -175,12 +204,18 @@
 {{#otherTrans}}
 		<li><ul>
 			<li><label>Multisig:</label>{{otherTrans.signerAddress}} </li>
+			<li><label>Type:</label>{{otherTrans.txtype}} </li>
+	{{#otherTrans.modifications}}
+			<li><label>Cosignatory {{modificationType}}</label> <a href="#" data-account="{{cosignatoryAccountAddress}}">{{cosignatoryAccountAddress}}</a></li>
+	{{/otherTrans.modifications}}
+	{{#otherTrans.recipient}}
 			<li><label>Recipient:</label> <a href="#" data-account="{{otherTrans.recipient}}">{{otherTrans.recipient}}</a></li>
 			<li><label>Amount:</label>{{{otherTrans.amount}}} <label>Inner fee:</label>{{{otherTrans.fee}}}</li>
 			<li><label>Message:</label>{{otherTrans.messageData}}</li>
 			<li><label>Message type:</label>{{otherTrans.msgType}}</li>
+	{{/otherTrans.recipient}}
 			<li><label>Total multisig fees:</label><strong>{{{otherTrans.multisigFees}}}</strong></li>
-		</ul></li>
+</ul></li>
 		<li><ul>
 			<li><label>Cosignatories</label></li>
 	{{#signatures}}
@@ -241,10 +276,16 @@
 {{#otherTrans}}
 		<li><ul>
 			<li><label>Multisig:</label>{{otherTrans.signerAddress}} </li>
+			<li><label>Type:</label>{{otherTrans.txtype}} </li>
+	{{#otherTrans.modifications}}
+			<li><label>Cosignatory {{modificationType}}</label> <a href="#" data-account="{{cosignatoryAccountAddress}}">{{cosignatoryAccountAddress}}</a></li>
+	{{/otherTrans.modifications}}
+	{{#otherTrans.recipient}}
 			<li><label>Recipient:</label> <a href="#" data-account="{{otherTrans.recipient}}">{{otherTrans.recipient}}</a></li>
 			<li><label>Amount:</label>{{{otherTrans.amount}}} <label>Inner fee:</label>{{{otherTrans.fee}}}</li>
 			<li><label>Message:</label>{{otherTrans.messageData}}</li>
 			<li><label>Message type:</label>{{otherTrans.msgType}}</li>
+	{{/otherTrans.recipient}}
 			<li><label>Total multisig fees:</label><strong>{{{otherTrans.multisigFees}}}</strong></li>
 		</ul></li>
 		<li><ul>
@@ -283,8 +324,9 @@
 		<li class="selected"><a href="/#blocks">home (blocks)</a></li>
 		<li><a href="/#tx">transactions</a></li>
 		<li><a href="/#stats">statistics</a></li>
-		<li><a href="/">assets</a></li>
-		<li><a href="/">market</a></li>
+		<li><a href=/#nodes>nodes</a></li>
+		<li><a nohref>assets</a></li>
+		<li><a nohref>market</a></li>
 	</ul>
     </nav>
 </li>

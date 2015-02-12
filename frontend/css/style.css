@@ -18,6 +18,8 @@ body {
 a { color: #dfa82f; text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+.dim { color: #666; }
+
 /* green color scheme */	
 .green .left_sidebar {background-color:#29AD5F;}
 
@@ -196,6 +198,11 @@ a:hover { text-decoration: underline; }
 .gimre #chart_info > div {
 	background-color: #444444;
 }
+
+.xbbcode-b { font-weight: bold; }
+.xbbcode-i { font-style: italic; }
+.xbbcode-s { text-decoration: line-through; }
+.xbbcode-u { text-decoration: underline; }
 
 @font-face {
     font-family: 'bourgeois_ultracondregular';

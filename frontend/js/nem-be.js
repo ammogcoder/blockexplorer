@@ -61,7 +61,8 @@ var g_api_link 		= "/api/blocks"; // local url for testing
 var g_api_links		= {
 	"blocks":	"/api/blocks",
 	"tx"	:	"/api/txs",
-	"stats" :	"/api/stats/harvesters"
+	"stats" :	"/api/stats/harvesters",
+	"nodes" :       "/api/stats/nodes"
 };
 
 
@@ -109,7 +110,10 @@ function initPage() {
 	var hash = setPageSection();
 	
 	switch(hash) {
-		
+	case 'nodes':
+		showNodes();
+		break;
+
 	case 'stats':
 		showStats();
 		break;
@@ -119,6 +123,14 @@ function initPage() {
 		g_web_sock = connectSocket(g_socket_link);
 		
 		break;
+	}
+
+	var pairs = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+	var hashPair = pairs[0].split('=');
+	if (hashPair[0] == 'hash') {
+		showSearchResult(hashPair[1]);
+	} else if (hashPair[0] == 'height') {
+		showBlockByHeight(hashPair[1]);
 	}
 }
 
@@ -212,7 +224,7 @@ function initSearch() {
 	if (g_rex == null)
 		g_rex = new RegExp("^[a-zA-Z0-9\\-]{15,}$","g");
 	if (g_re_height == null)
-		g_re_height = new RegExp("^block [1-9][0-9]*$", "g");
+		g_re_height = new RegExp("^block [1-9][0-9]*$", "");
 	if (g_re_page == null)
 		g_re_page = new RegExp("^page [1-9][0-9]*$", "g");
 
@@ -227,7 +239,7 @@ function initSearch() {
 		if (! g_rex.test(val)) {
 			if (! g_re_height.test(val)) {
 				if (! g_re_page.test(val)) {
-					console.log("search enty: ", val);
+					console.log("search entry: (" + val + ")");
 					showErr("Invalid search entry!");
 				} else {
 					console.log("switch to page" + val.substr(5));
@@ -236,7 +248,7 @@ function initSearch() {
 			} else {
 				var blockNo = parseInt(val.substr(6));
 				console.log("retrieving block at " + blockNo);
-				//showBlockByHeight(blockNo);
+				showBlockByHeight(blockNo);
 				if (g_last_height != null) {
 					var page = Math.floor((g_last_height - blockNo) / 23 + 1);
 					switchToPage(page);
@@ -327,6 +339,98 @@ function initChartBlocksRangeSelect() {
 	
 }
 
+function showNodes() {
+	$("#tbl").attr("class","");
+	$("#tbl").addClass(g_section);	
+	
+	var tbl = $($("#nodes").html());
+	var tmpl = tbl.find("tbody").html();
+
+	if (g_htrndr == null) g_htrndr = new HTMLRenderer();
+	g_htrndr.setTemplate(tmpl);
+	g_htrndr.addFormatter("fees", fmtNemValue);
+
+	var sortbya = "endpoint"
+	var sortbyb = "host";
+	$("#tbl thead th:eq(0)").removeClass("sortable");
+	$("#tbl thead th:eq(1)").removeClass("sortable");
+	$("#tbl thead th:eq(2)").removeClass("sortable");
+	$("#tbl thead th:eq(3)").removeClass("sortable");
+	if (arguments.length == 0) {
+		$("#tbl thead").html(tbl.find("thead").html());
+		$("#tbl thead th").off('click').on('click',function(evt) {
+			evt.preventDefault();
+			var sort = $(this).data('sort');
+			showNodes(sort);
+		});
+	}
+	else if (arguments[0] == "BY_ADDRESS") {
+		sortbya = "endpoint";
+		sortbyb = "host";
+		$("#tbl thead th:eq(0)").addClass("sortable");
+	}
+	else if (arguments[0] == "BY_NAME") {
+		sortbya = "identity";
+		sortbyb = "name";
+		$("#tbl thead th:eq(1)").addClass("sortable");
+	}
+	else if (arguments[0] == "BY_VERSION") {
+		sortbya = "metaData";
+		sortbyb = "version";
+		$("#tbl thead th:eq(2)").addClass("sortable");
+	}
+	else if (arguments[0] == "BY_HEIGHT") {
+		sortbya = "metaData";
+		sortbyb = "height";
+		$("#tbl thead th:eq(3)").addClass("sortable");
+	}
+
+	$.get(g_api_link).done(function(res) {
+		//alert(res);
+		try {
+			var json = res;
+			var html = "";
+			var dataArray = [];
+			for (var data in json) {
+				dataArray.push(json[data]);
+			}
+			dataArray.sort(function(o1, o2){
+				var k1 = o1[sortbya][sortbyb];
+				var k2 = o2[sortbya][sortbyb];
+				return k1 < k2 ? -1 : (k2 < k1 ? 1 : 0);
+			});
+			var idx = 1;
+			var maxH = 0;
+			for (var data in dataArray) {
+				var h = dataArray[data]['metaData']['height'];
+				maxH = Math.max(maxH, h);
+				dataArray[data]['identity']['name'] = XBBCODE.process({
+					text: dataArray[data]['identity']['name'],
+					removeMisalignedTags: true,
+					addInLineBreaks: false
+				}).html;
+			}
+			for (var data in dataArray) {
+				var h = dataArray[data]['metaData']['height'];
+				if (h < maxH && (maxH-h)>5) {
+					dataArray[data]['metaData']['height'] = '<span style="color:#c60">'+h+'</span>';
+				}
+				dataArray[data]['idx'] = idx;
+				html += g_htrndr.render(dataArray[data]);
+				idx += 1;
+			}
+			$("#tbl tbody").html(html);
+			
+		} catch(e) {
+			showErr(e.message);
+		}
+		
+	}).fail(function(xhr, ajaxOptions, thrownError) {
+		alert(xhr.status);
+		alert(thrownError);
+	});
+	
+}
 
 function showStats() {
 
@@ -726,10 +830,13 @@ function renderData(data) {
 	var n = blocks.length;
 	
 	for (var i = 0;i < n;i++) {
-		
 		var block = blocks[i];
-		html += g_htrndr.render(block);
-		//break;
+		// assume it's a transaction
+		if (block["block"]) {
+			html += renderTransaction(g_htrndr, block);
+		} else {
+			html += g_htrndr.render(block);
+		}
 	}
 	
 	$("#tbl tbody").html(html);
@@ -777,7 +884,7 @@ function searchData(hash) {
 	var params = new Object();
 	//params['hash'] = hash;
 	params['q'] = hash;
-	
+
 	var json = null;
 	$.ajax({
 			async:false,
@@ -785,6 +892,7 @@ function searchData(hash) {
 			data: params,
 			url: URL
 	}).done(function(res) {
+		console.log(res);
 		//alert(res);
 		try {
 			json = res; //JSON.parse(res);
@@ -893,9 +1001,9 @@ function txtypeToString(num) {
 
 function renderTransaction(currentRenderer, tx)
 {
-
 	tx['txtype'] = txtypeToString(tx['type']);
 	var txMsg;
+	var transactionData = tx;
 	
 	if (tx['message']) {
 		txMsg = tx;
@@ -903,6 +1011,7 @@ function renderTransaction(currentRenderer, tx)
 	} else if (tx['otherTrans']) {
 		var innerTx = tx['otherTrans'];
 		innerTx['signerAddress'] = toAddress(innerTx['signer']);
+		innerTx['txtype'] = txtypeToString(innerTx['type']);
 		if (innerTx['message']) {
 			txMsg = innerTx;
 		}
@@ -917,6 +1026,8 @@ function renderTransaction(currentRenderer, tx)
 		innerTx['amount'] = _fmtNemValue(innerTx['amount']);
 		innerTx['fee'] = _fmtNemValue(innerTx['fee']);
 		innerTx['multisigFees'] =  _fmtNemValue(totalFee);
+
+		transactionData = innerTx;
 	}
 	if (txMsg) {
 		if (txMsg['message']['type'] == 1) {
@@ -928,10 +1039,12 @@ function renderTransaction(currentRenderer, tx)
 		}
 	}
 
-	if (tx['modifications']) {
-		for (var i = 0; i < tx['modifications'].length; ++i) {
-			var mod = tx['modifications'][i];
+	if (transactionData['modifications']) {
+		console.log('modifications:', transactionData['modifications'])
+		for (var i = 0; i < transactionData['modifications'].length; ++i) {
+			var mod = transactionData['modifications'][i];
 			mod['cosignatoryAccountAddress'] = toAddress(mod['cosignatoryAccount']);
+			mod['modificationType'] = mod['modificationType'] === 2 ? 'REMOVAL' : 'Add';
 		}
 	}
 	return currentRenderer.render(tx);
@@ -1163,8 +1276,11 @@ function fmtMessage(key,data) {
 
 function updateData(data) {
 	if (typeof data === "string") data = JSON.parse(data);
-
-	var html = $(g_htrndr.render(data)).hide();
+	var html;
+	if (data["block"])
+		html = $(renderTransaction(g_htrndr,data)).hide();
+	else
+		html = $(g_htrndr.render(data)).hide();
 	html.addClass("newdata");
 
 	$("#tbl tbody tr:eq(0)").before(html);

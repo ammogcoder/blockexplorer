@@ -51,3 +51,6 @@ class AHttpApi():
     
     def getpeerlist(self):
         return self._getrequest('node/peer-list/all')
+
+    def getlastblock(self):
+        return self._getrequest('chain/last-block')
