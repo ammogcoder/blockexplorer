@@ -339,6 +339,14 @@ function initChartBlocksRangeSelect() {
 	
 }
 
+function platformToOs(d) {
+	if (d.match(/on linux/gi)) return "lin";
+	if (d.match(/on mac/gi)) return "mac";
+	if (d.match(/on windows/gi)) return "win";
+	
+	return "unk";
+}
+
 function showNodes() {
 	$("#tbl").attr("class","");
 	$("#tbl").addClass(g_section);	
@@ -352,37 +360,39 @@ function showNodes() {
 
 	var sortbya = "endpoint"
 	var sortbyb = "host";
-	$("#tbl thead th:eq(0)").removeClass("sortable");
 	$("#tbl thead th:eq(1)").removeClass("sortable");
 	$("#tbl thead th:eq(2)").removeClass("sortable");
 	$("#tbl thead th:eq(3)").removeClass("sortable");
+	$("#tbl thead th:eq(4)").removeClass("sortable");
+
 	if (arguments.length == 0) {
 		$("#tbl thead").html(tbl.find("thead").html());
 		$("#tbl thead th").off('click').on('click',function(evt) {
-			evt.preventDefault();
+			//evt.preventDefault();
 			var sort = $(this).data('sort');
 			showNodes(sort);
 		});
 	}
-	else if (arguments[0] == "BY_ADDRESS") {
+
+	if (arguments.length == 0 || arguments[0] == "BY_ADDRESS") {
 		sortbya = "endpoint";
 		sortbyb = "host";
-		$("#tbl thead th:eq(0)").addClass("sortable");
+		$("#tbl thead th:eq(1)").addClass("sortable");
 	}
 	else if (arguments[0] == "BY_NAME") {
 		sortbya = "identity";
 		sortbyb = "name";
-		$("#tbl thead th:eq(1)").addClass("sortable");
+		$("#tbl thead th:eq(2)").addClass("sortable");
 	}
 	else if (arguments[0] == "BY_VERSION") {
 		sortbya = "metaData";
 		sortbyb = "version";
-		$("#tbl thead th:eq(2)").addClass("sortable");
+		$("#tbl thead th:eq(3)").addClass("sortable");
 	}
 	else if (arguments[0] == "BY_HEIGHT") {
 		sortbya = "metaData";
 		sortbyb = "height";
-		$("#tbl thead th:eq(3)").addClass("sortable");
+		$("#tbl thead th:eq(4)").addClass("sortable");
 	}
 
 	$.get(g_api_link).done(function(res) {
@@ -402,21 +412,31 @@ function showNodes() {
 			var idx = 1;
 			var maxH = 0;
 			for (var data in dataArray) {
-				var h = dataArray[data]['metaData']['height'];
+				var d = dataArray[data];
+				var h = d['metaData']['height'];
 				maxH = Math.max(maxH, h);
-				dataArray[data]['identity']['name'] = XBBCODE.process({
-					text: dataArray[data]['identity']['name'],
+				var n = d['identity']['name'];
+				d['identity']['name'] = n || '[i]>empty<[/i]';
+				d['identity']['name'] = XBBCODE.process({
+					text: d['identity']['name'],
 					removeMisalignedTags: true,
 					addInLineBreaks: false
 				}).html;
+
 			}
 			for (var data in dataArray) {
-				var h = dataArray[data]['metaData']['height'];
-				if (h < maxH && (maxH-h)>5) {
-					dataArray[data]['metaData']['height'] = '<span style="color:#c60">'+h+'</span>';
+				var d = dataArray[data];
+				d['os'] = platformToOs(d['metaData']['platform']);
+				var h = d['metaData']['height'];
+				if (h < maxH && (maxH-h)>10) {
+					d['metaData']['height'] = '<span style="color:#c60">'+h+'</span>';
 				}
-				dataArray[data]['idx'] = idx;
-				html += g_htrndr.render(dataArray[data]);
+				if (h == 0) {
+					d['class'] = 'red';
+					d['metaData']['height'] = '?';
+				}
+				d['idx'] = idx;
+				html += g_htrndr.render(d);
 				idx += 1;
 			}
 			$("#tbl tbody").html(html);

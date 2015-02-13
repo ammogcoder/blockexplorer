@@ -26,7 +26,7 @@
 			<th>Timestamp</th>
 			<th>Trans.</th>
 			<th>Harvester</th>
-		</tr>	
+		</tr>
 	</thead>
 	<tbody>
 		<tr>
@@ -74,19 +74,27 @@
 	<thead>
 		<tr>
 			<th>#</th>
-			<th data-sort="BY_ADDRESS">address</th>
-			<th data-sort="BY_NAME">name</th>
-			<th data-sort="BY_VERSION" class="sortable">version</th>
-			<th data-sort="BY_HEIGHT">height</th>
+			<th data-sort="BY_ADDRESS"><i class="fa fa-caret-down"></i> address</th>
+			<th data-sort="BY_NAME"><i class="fa fa-caret-down"></i> name</th>
+			<th data-sort="BY_VERSION"><i class="fa fa-caret-down"></i> version</th>
+			<th data-sort="BY_HEIGHT"><i class="fa fa-caret-down"></i> height</th>
+		</tr>
+		<tr>
+			<td colspan="5"><span style="color:#c60">Orange heights is more than 10 blocks behind</span></td>
+		</tr>
+		<tr class='red'>
+			<th></th>
+			<td colspan="3">red nodes are not accessible at time of last check</td>
+			<th></th>
 		</tr>
 	</thead>
 	<tbody>
-		<tr>
+		<tr class='{{class}}'>
 			<td>{{idx}}</td>
 			<td>{{endpoint.host}}:<span style='color:#888'>{{endpoint.port}}</span></td>
 			<td>{{{identity.name}}}</td>
-			<td>{{metaData.version}}</td>
-			<td>{{{metaData.height}}}</td>
+			<td class='os {{os}}'>{{metaData.version}}</td>
+			<td>{{{metaData.height}}} ({{checks.1}} / {{checks.0}})</td>
 		</tr>
 	</tbody>
 	</table>

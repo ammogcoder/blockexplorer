@@ -25,8 +25,9 @@ class RedisConnector(BasePeriodic):
 		while len(self.redis_client.zrangebyscore('blocks', self.lastHeight, self.lastHeight)) >= 1:
 			self.lastHeight += 1
 			if (self.lastHeight % 256) == 0:
-				print "got ",self.lastHeight,
-				print int(json.loads(zlib.decompress(self.redis_client.zrangebyscore('blocks', self.lastHeight, self.lastHeight)[0]))['height'])
+				data = self.redis_client.zrangebyscore('blocks', self.lastHeight, self.lastHeight)
+				if len(data) > 0: 
+					print "got ",self.lastHeight,json.loads(zlib.decompress(data[0]))['height']
 
 	def _get_height(self):
 		if self.redis_client.zcard('blocks') == 0:
@@ -121,7 +122,7 @@ class RedisConnector(BasePeriodic):
 			print int(json.loads(zlib.decompress(self.redis_client.zrangebyscore('blocks', block['height'], block['height'])[0]))['height'])
 			self.lastHeight = block['height']
 			return
-		print "provessing block height:", block['height'], blockHarvesterAddress
+		print "processing block height:", block['height'], blockHarvesterAddress
 
 		#if self.seen_blocks >= block['height']:
 		#	return
@@ -197,4 +198,6 @@ class RedisConnector(BasePeriodic):
 		except:
 			print "exception"
 			traceback.print_exc()
+		
+		self.findLastHeight()
 
