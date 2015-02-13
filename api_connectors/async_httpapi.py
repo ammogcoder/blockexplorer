@@ -16,10 +16,11 @@ class AHttpApi():
 	def _getrequest(self, callurl, **kwargs):
 		data = urllib.urlencode(kwargs)
 		if not data:
-			response = self.http_client.fetch(urlparse.urljoin(self.base_url, callurl))
+			url = urlparse.urljoin(self.base_url, callurl)
 		else:
-			response = self.http_client.fetch(urlparse.urljoin(self.base_url, callurl % data))			
-		return response
+			url = urlparse.urljoin(self.base_url, callurl % data)
+		req = tornado.httpclient.HTTPRequest(url, connect_timeout=1.0, request_timeout=10.0)
+		return self.http_client.fetch(req)
 	
 	def _postrequest(self, callurl, data):
 		return self.http_client.fetch(urlparse.urljoin(self.base_url, callurl),

@@ -10,6 +10,7 @@ import datetime
 from periodics.BasePeriodic import BasePeriodic
 from toolbox.hash_converter import convert_to_address as pk2address
 
+
 class RedisConnector(BasePeriodic):
 	
 	def __init__(self):
@@ -20,7 +21,7 @@ class RedisConnector(BasePeriodic):
 		self.nemEpoch = datetime.datetime(2015, 2, 1, 0, 0, 0, 0, None)
 		self.lastHeight = 1
 		self.findLastHeight()
-	
+
 	def findLastHeight(self):
 		while len(self.redis_client.zrangebyscore('blocks', self.lastHeight, self.lastHeight)) >= 1:
 			self.lastHeight += 1
@@ -28,6 +29,7 @@ class RedisConnector(BasePeriodic):
 				data = self.redis_client.zrangebyscore('blocks', self.lastHeight, self.lastHeight)
 				if len(data) > 0: 
 					print "got ",self.lastHeight,json.loads(zlib.decompress(data[0]))['height']
+		self.lastHeight -= 1
 
 	def _get_height(self):
 		if self.redis_client.zcard('blocks') == 0:
@@ -122,6 +124,7 @@ class RedisConnector(BasePeriodic):
 			print int(json.loads(zlib.decompress(self.redis_client.zrangebyscore('blocks', block['height'], block['height'])[0]))['height'])
 			self.lastHeight = block['height']
 			return
+		print
 		print "processing block height:", block['height'], blockHarvesterAddress
 
 		#if self.seen_blocks >= block['height']:

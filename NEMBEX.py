@@ -22,7 +22,6 @@ from handlers.ApiHandler import SearchBlockByHashHandler
 from handlers.ApiHandler import SearchTxByHashHandler
 from handlers.ApiHandler import SearchHandler
 from handlers.ApiHandler import FromToTxHandler
-from handlers.ApiHandler import BlockChartHandler
 from handlers.ApiHandler import BlockChartHandlerCustom
 from handlers.ApiHandler import HarvesterStatsHandler
 from handlers.ApiHandler import CheckNis
@@ -84,7 +83,6 @@ if __name__ == '__main__':
          (r'/api/block', SearchBlockByHashHandler),
          (r'/api/search', SearchHandler),
          #stats
-         (r'/api/stats/blocktimes', BlockChartHandler),
          (r'/api/stats/v2/blocktimes', BlockChartHandlerCustom),
          (r'/api/stats/harvesters', HarvesterStatsHandler),
          (r'/api/stats/nodes', NodeListHandler),

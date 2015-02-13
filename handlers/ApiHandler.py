@@ -10,6 +10,7 @@ import collections
 import zlib
 from itertools import izip_longest
 from handlers.BaseHandler import BaseHandler
+import time
 
 class BlockAfterHandler(BaseHandler):
 	
@@ -22,6 +23,7 @@ class BlockAfterHandler(BaseHandler):
 class LastBlockHandler(BaseHandler):
 	def get(self):
 		self.write(zlib.decompress(self.redis_client.zrange('blocks', 0, 2, 'desc')[0]))
+		self.finish()
 		
 class TestAccountHandler(BaseHandler):
 	def get(self):
@@ -30,6 +32,7 @@ class TestAccountHandler(BaseHandler):
 		txs = [json.loads(tx) for tx in txs]
 		txs = json.dumps({'data':txs})
 		self.write(txs)
+		self.finish()
 
 
 class SearchHandler(BaseHandler):
@@ -48,17 +51,20 @@ class SearchHandler(BaseHandler):
 
 		else:
 			self.write(self.redis_client.get(searchstring))
+		self.finish()
 
 class SearchBlockByHashHandler(BaseHandler):
 	
 	def get(self):
 		hash = self.get_argument('hash')
 		self.write(self.redis_client.get(hash))
+		self.finish()
 		
 class SearchTxByHashHandler(BaseHandler):
 	def get(self):
 		hash = self.get_argument('hash')
 		self.write(self.redis_client.get(hash))
+		self.finish()
 		
 class AccountHandler(BaseHandler):
 	@tornado.gen.coroutine
@@ -105,6 +111,7 @@ class FromToBlocksHandler(BaseHandler):
 		blocks = [json.loads(zlib.decompress(b)) for b in blocks]
 		blocks = json.dumps({"data":blocks})						
 		self.write(blocks)
+		self.finish()
 	
 class FromToTxHandler(BaseHandler):
 	
@@ -126,40 +133,32 @@ class FromToTxHandler(BaseHandler):
 		txs = [json.loads(tx) for tx in txs]
 		txs = json.dumps({'data':txs})						
 		self.write(txs)
+		self.finish()
 		
 class BlockChartHandlerCustom(BaseHandler):
 	
 	def get(self):
 		number_of_blocks = int(self.get_argument('numBlock', 120)) + 1
 		starting_height = int(self.get_argument('height', 0)) - 1
+		time1 = time.clock()
 		blocks = self.redis_client.zrevrangebyscore('blocks', starting_height+number_of_blocks, starting_height)
+		time2 = time.clock()
+		print "blocktimes got %d blocks [%s]" % (len(blocks), time2-time1)
 		times = collections.OrderedDict()
+		foo = collections.OrderedDict()
+		blocks = map(lambda b: json.loads(zlib.decompress(b)), blocks)
 		for i in xrange(len(blocks) - 1):
-			blocka = json.loads(zlib.decompress(blocks[i]))
-			blockb = json.loads(zlib.decompress(blocks[i + 1]))
+			blocka = blocks[i]
+			blockb = blocks[i + 1]
 			timea = blocka['timestamp_unix']
 			timeb = blockb['timestamp_unix']
 			delta = timea - timeb
-			times[blocka['height']]= delta			
-		self.write(json.dumps({'blocktimes':times}))
-
-class BlockChartHandler(BaseHandler):
-	
-	def get(self):
-		n = int(self.get_argument('lvl', 0))
-		if n > 3:
-			n = 0
-		possibilites = {0:120, 1:240, 2:480, 3:1000}
-		blocks = self.redis_client.zrange('blocks', 0, possibilites[n], 'desc')
-		times = {}
-		for i in xrange(len(blocks) - 1):
-			blocka = json.loads(zlib.decompress(blocks[i]))
-			blockb = json.loads(zlib.decompress(blocks[i + 1]))
-			timea = blocka['timestamp_unix']
-			timeb = blockb['timestamp_unix']
-			delta = timea - timeb
-			times[blocka['height']]= delta			
-		self.write(json.dumps({'blocktimes':times}))
+			times[blocka['height']]= delta
+			foo[blocka['height']] = len(blocka['txes'])
+		time3 = time.clock()
+		print "time taken: %s" % (time3-time2)
+		self.write(json.dumps({'blocktimes':times, 'tlen':foo}))
+		self.finish()
 
 class HarvesterStatsHandler(BaseHandler):
 	
@@ -180,6 +179,7 @@ class HarvesterStatsHandler(BaseHandler):
 				result['top50'].append({'address': harvester[0], 'blocks': int(blocks), 'fees': int(harvester[1])})
 		
 		self.write(json.dumps(result))
+		self.finish()
 			
 class CheckNis(BaseHandler):
 	def __init__(self, *args, **kwargs):	
@@ -205,4 +205,5 @@ class CheckNis(BaseHandler):
 class NodeListHandler(BaseHandler):
 	def get(self):
 		self.write(self.redis_client.get('active_nodes'))
+		self.finish()
 		

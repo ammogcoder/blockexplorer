@@ -8,6 +8,32 @@ import zlib
 from api_connectors import async_httpapi
 from periodics.BasePeriodic import BasePeriodic
 
+def isValidIp(address):
+	try:
+		host_bytes = address.split('.')
+		valid = [int(b) for b in host_bytes]
+		valid = [b for b in valid if b >= 0 and b<=255]
+		return len(host_bytes) == 4 and len(valid) == 4
+	except:
+		return False
+
+class Col:
+	Success = '\033[1;37;42m'
+	Error = '\033[30;41m'
+	Endl = '\033[0m'
+
+def error(*args):
+	print Col.Error,
+	for arg in args:
+		print arg,
+	print Col.Endl
+
+def success(*args):
+	print Col.Success,
+	for arg in args:
+		print arg,
+	print Col.Endl
+
 class NetworkDiscoverer(BasePeriodic):
 	def __init__(self):
 		super(NetworkDiscoverer, self).__init__()
@@ -16,23 +42,25 @@ class NetworkDiscoverer(BasePeriodic):
 		self.processedHosts = set()
 		self.realActiveNodes = {}
 
-	def addActiveNodes(self, response, oldNodes):
+	def addActiveNodes(self, response):
 		for node in json.loads(response.body)['active']:
 			hostname = node['endpoint']['host']
 			if (hostname not in self.allHosts) and (hostname not in self.processedHosts):
 				self.allHosts.add(hostname)
 				self.activeNodes[hostname] = node
-				if (hostname in oldNodes) and ('checks' in oldNodes[hostname]):
-					node['checks'] = oldNodes[hostname]['checks']
-					print "HOST restored checks: ", node['checks']
-				else:
-					node['checks'] = [0,0]
 					
-					
+	def fillChecks(self, node, oldNodes):
+		hostname = node['endpoint']['host']
+		if (hostname in oldNodes) and ('checks' in oldNodes[hostname]):
+			node['checks'] = oldNodes[hostname]['checks']
+			print "HOST restored checks: ", node['checks']
+		else:
+			node['checks'] = [0,0]
 		
 	def getEndpoint(self, hostname):
 		data = self.activeNodes[hostname]
 		return '%s://%s:%d' % (data['endpoint']['protocol'], hostname, data['endpoint']['port'])
+
 
 	@tornado.gen.coroutine
 	def run(self):
@@ -45,17 +73,28 @@ class NetworkDiscoverer(BasePeriodic):
 
 			#get neighbors
 			response = yield self.api.getPeerList()
-			self.addActiveNodes(response, oldNodes)
+			self.addActiveNodes(response)
 			print 'running network discovery'
 			
 			while len(self.allHosts) > 0:
-				print "HOSTS LEFT %d PROCESSED %d" % (len(self.allHosts), len(self.processedHosts))
+				success("HOSTS LEFT %d PROCESSED %d" % (len(self.allHosts), len(self.processedHosts)))
 				host = self.allHosts.pop()
 				self.processedHosts.add(host)
 				target_host = self.getEndpoint(host)
 				node_api = async_httpapi.AHttpApi(target_host)
-				self.realActiveNodes[host] = self.activeNodes[host]
+				seenByOthers = self.activeNodes[host]
+				try:
+					response = yield node_api.getNodeInfo()
+					seenByOthers = json.loads(response.body)
+				except:
+					error('ERROR[0] communitcating with %s' % target_host)
+					pass
+
+				self.realActiveNodes[host] = seenByOthers
+				self.fillChecks(self.realActiveNodes[host], oldNodes)
 				self.realActiveNodes[host]['checks'][0] += 1
+				if isValidIp(seenByOthers['endpoint']['host']):
+					seenByOthers['endpoint']['host'] = '.'.join(seenByOthers['endpoint']['host'].split('.')[0:2] + ['xx', 'xx'])
 				print 'HOST %s nem name %s ' % (host, self.realActiveNodes[host]['identity']['name'])
 				try:
 					response = yield node_api.getLastBlock()
@@ -65,15 +104,15 @@ class NetworkDiscoverer(BasePeriodic):
 					self.realActiveNodes[host]['checks'][1] += 1
 				except:
 					self.realActiveNodes[host]['metaData']['height'] = 0
-					print 'ERROR[1] communitcating with %s' % target_host
+					error('ERROR[1] communitcating with %s' % target_host)
 					continue
 
 				try:
 					response = yield node_api.getPeerList()
-					self.addActiveNodes(response, oldNodes)
+					self.addActiveNodes(response)
 					print 'HOST %s processed' % (target_host)
 				except:
-					print 'ERROR[2] communitcating with %s' % target_host
+					error('ERROR[2] communitcating with %s' % target_host)
 			self.redis_client.set('active_nodes', json.dumps(self.realActiveNodes))
 		except:
 			traceback.print_exc()
