@@ -15,7 +15,6 @@ class AHttpApi():
 	
 	def _getrequest(self, callurl, **kwargs):
 		data = urllib.urlencode(kwargs)
-		
 		if not data:
 			response = self.http_client.fetch(urlparse.urljoin(self.base_url, callurl))
 		else:
@@ -29,7 +28,7 @@ class AHttpApi():
 										  body=data)
 		
 	def getFirstBlock(self):
-   	data = json.dumps({'height':1})
+		data = json.dumps({'height':1})
 		return self._postrequest('/block/at/public', data)
  
 	def getBlocksAfter(self, height):

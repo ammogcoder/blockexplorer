@@ -17,7 +17,8 @@ class BaseHandler(tornado.web.RequestHandler, SessionMixin):
 		self.parser = SafeConfigParser()
 		self.parser.read("settings.INI")
 		self.redis_client = redis.StrictRedis(host='localhost', port=6379, db=12)
-		self.api = async_httpapi.AHttpApi(baseurl='http://nijuichi.nem.ninja:7890')
+		hostname = self.parser.get("blockexplorer", "node")
+		self.api = async_httpapi.AHttpApi(baseurl=hostname)
 		
 	def set_default_headers(self):
 	 	self.set_header('Content-Type', 'application/json') 

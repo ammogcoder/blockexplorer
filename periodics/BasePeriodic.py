@@ -15,7 +15,8 @@ class BasePeriodic(object):
     def __init__(self):
         self.parser = SafeConfigParser()
         self.parser.read('settings.INI')
-        self.api = async_httpapi.AHttpApi()
+	hostname = self.parser.get("blockexplorer", "node")
+        self.api = async_httpapi.AHttpApi(baseurl=hostname)
         self.redis_client = redis.StrictRedis(host='localhost', port=6379, db=12)
         
     @tornado.gen.coroutine
