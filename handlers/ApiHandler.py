@@ -15,7 +15,7 @@ class BlockAfterHandler(BaseHandler):
 	
 	@tornado.gen.coroutine
 	def get(self):
-		response = yield self.api.getblocksafter(int(self.get_argument('height')))
+		response = yield self.api.getBlocksAfter(int(self.get_argument('height')))
 		self.write(response.body)
 		self.finish()
 		
@@ -39,7 +39,7 @@ class SearchHandler(BaseHandler):
 		#decide if address or hash and act accordingly
 		if re.match('T[A-Z0-9]+', searchstring):
 			address = searchstring
-			response = yield self.api.getaccount(address)
+			response = yield self.api.getAccount(address)
 			data = json.loads(response.body)
 			data['meta']['in'] = self.redis_client.zscore('nem_recv', address)
 			data['meta']['out'] = self.redis_client.zscore('nem_sent', address)
@@ -64,7 +64,7 @@ class AccountHandler(BaseHandler):
 	@tornado.gen.coroutine
 	def get(self):
 		address = self.get_argument('address')
-		response = yield self.api.getaccount(address)
+		response = yield self.api.getAccount(address)
 		data = json.loads(response.body)
 		data['meta']['in'] = self.redis_client.zscore('nem_recv', address)
 		data['meta']['out'] = self.redis_client.zscore('nem_sent', address)
@@ -76,7 +76,7 @@ class TransfersHandler(BaseHandler):
 	
 	@tornado.gen.coroutine
 	def get(self):
-		response = yield self.api.getalltxforaccount(self.get_argument('address'))
+		response = yield self.api.getAllTxForAccount(self.get_argument('address'))
 		self.write(response.body)
 		self.finish()
 		

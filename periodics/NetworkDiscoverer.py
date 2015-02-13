@@ -44,7 +44,7 @@ class NetworkDiscoverer(BasePeriodic):
 			self.realActiveNodes = {}
 
 			#get neighbors
-			response = yield self.api.getpeerlist()
+			response = yield self.api.getPeerList()
 			self.addActiveNodes(response, oldNodes)
 			print 'running network discovery'
 			
@@ -58,7 +58,7 @@ class NetworkDiscoverer(BasePeriodic):
 				self.realActiveNodes[host]['checks'][0] += 1
 				print 'HOST %s nem name %s ' % (host, self.realActiveNodes[host]['identity']['name'])
 				try:
-					response = yield node_api.getlastblock()
+					response = yield node_api.getLastBlock()
 					height = json.loads(response.body)['height']
 					print '%s last block: %s' % (host, height)
 					self.realActiveNodes[host]['metaData']['height'] = height
@@ -69,7 +69,7 @@ class NetworkDiscoverer(BasePeriodic):
 					continue
 
 				try:
-					response = yield node_api.getpeerlist()
+					response = yield node_api.getPeerList()
 					self.addActiveNodes(response, oldNodes)
 					print 'HOST %s processed' % (target_host)
 				except:

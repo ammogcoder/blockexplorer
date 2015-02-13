@@ -183,7 +183,7 @@ class RedisConnector(BasePeriodic):
 			traceback.print_exc() 
 		try:
 			if self.redis_client.zcard('blocks') == 0:
-				response = yield self.api.getfirstblock()
+				response = yield self.api.getFirstBlock()
 				blockData = {}
 				blockData["block"] = json.loads(response.body)
 				blockData["txes"] = blockData['block']['transactions']
@@ -192,7 +192,7 @@ class RedisConnector(BasePeriodic):
 
 			height = self.lastHeight
 			print "getting blocks at ", height
-			response = yield self.api.getblocksafter(height)
+			response = yield self.api.getBlocksAfter(height)
 			for blockData in json.loads(response.body)['data']:
 				self.processBlock(blockData)
 		except:
