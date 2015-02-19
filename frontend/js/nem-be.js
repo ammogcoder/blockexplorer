@@ -1,6 +1,6 @@
 /*
 @name		:	NEM Blockchain Explorer
-@version	:	0.1.2 (alpha)
+@version	:	0.2.0 (alpha)
 @author		:	freigeist
 @licence	:	
 @copyright	:	2014->, freigeist
@@ -21,7 +21,6 @@
 	/socket/last-block is a websocket that will pop the latest block when it's harvested.
 	/api/block?hash=...
 	New calls for stats: 
-		/api/stats/blocktimes - will give the last 120 blocktimes
 		/api/stats/v2/blocktimes - will give the 1st 120 blocktimes
 			possible parameters
 			height 	(startng height) 
@@ -340,11 +339,24 @@ function initChartBlocksRangeSelect() {
 }
 
 function platformToOs(d) {
+	if (d == null) return "unk";
 	if (d.match(/on linux/gi)) return "lin";
 	if (d.match(/on mac/gi)) return "mac";
 	if (d.match(/on windows/gi)) return "win";
 	
 	return "unk";
+}
+
+function isIp(a) {
+	if (a.match(/\d+\.\d+\.xx\.xx/)) return true;
+	return false;
+}
+
+function compareIps(a,b) {
+	var s1=a.split(/\./);
+	var s2=b.split(/\./);
+	console.log(a, b);
+	return (s1[0] - s2[0]) || (s1[1] - s2[1]);
 }
 
 function showNodes() {
@@ -374,27 +386,53 @@ function showNodes() {
 		});
 	}
 
-	if (arguments.length == 0 || arguments[0] == "BY_ADDRESS") {
+	var sortFunc = function(o1, o2){
+		var k1 = o1[sortbya][sortbyb];
+		var k2 = o2[sortbya][sortbyb];
+		return k1 < k2 ? 1 : (k2 < k1 ? -1 : 0);
+	};
+	if (arguments.length == 0 || arguments[0] == "BY_HEIGHT") {
+		sortbya = "metaData";
+		sortbyb = "height";
+		$("#tbl thead th:eq(4)").addClass("sortable");
+	} else if (arguments[0] == "BY_ADDRESS") {
 		sortbya = "endpoint";
 		sortbyb = "host";
 		$("#tbl thead th:eq(1)").addClass("sortable");
+		sortFunc = function(o1, o2){
+			var k1 = o1[sortbya][sortbyb];
+			var k2 = o2[sortbya][sortbyb];
+			var ip1 = isIp(k1);
+			var ip2 = isIp(k2);
+			if (!ip1 && ip2) return -1;
+			if (ip1 && !ip2) return 1;
+			if (!ip1 && !ip2) return k1.localeCompare(k2);
+			return compareIps(k1, k2);
+		};
 	}
 	else if (arguments[0] == "BY_NAME") {
 		sortbya = "identity";
 		sortbyb = "name";
 		$("#tbl thead th:eq(2)").addClass("sortable");
+		sortFunc = function(o1, o2){
+			var k1 = o1[sortbya][sortbyb];
+			var k2 = o2[sortbya][sortbyb];
+			return k1.localeCompare(k2);
+		};
 	}
 	else if (arguments[0] == "BY_VERSION") {
 		sortbya = "metaData";
 		sortbyb = "version";
 		$("#tbl thead th:eq(3)").addClass("sortable");
 	}
-	else if (arguments[0] == "BY_HEIGHT") {
-		sortbya = "metaData";
-		sortbyb = "height";
-		$("#tbl thead th:eq(4)").addClass("sortable");
-	}
 
+	var alices = {
+		'3302e7703ee9f364c25bbfebb9c12ac91fa9dcd69e09a5d4f3830d71505a2350':'alice2',
+		'708fbae6f7dc43b19e18a783d99535650504b60abd27b12137d17227ee3d5e84':'alice3',
+		'c7e68c147fe246caaf6f09d3a1b54a5744b1d3f55a22a8557c3a063d70669262':'alice4',
+		'c1d806564c3dda901c46e1dd4b533aae28eac148672afd69c91e7b51fe930948':'alice5',
+		'266c29aefaa4dbd3c206ea235c079d791dbb9808c428d4b3b206a088523ed1c8':'alice6'
+	};
 	$.get(g_api_link).done(function(res) {
 		//alert(res);
 		try {
@@ -404,11 +442,7 @@ function showNodes() {
 			for (var data in json) {
 				dataArray.push(json[data]);
 			}
-			dataArray.sort(function(o1, o2){
-				var k1 = o1[sortbya][sortbyb];
-				var k2 = o2[sortbya][sortbyb];
-				return k1 < k2 ? -1 : (k2 < k1 ? 1 : 0);
-			});
+			dataArray.sort(sortFunc);
 			var idx = 1;
 			var maxH = 0;
 			for (var data in dataArray) {
@@ -427,6 +461,9 @@ function showNodes() {
 			for (var data in dataArray) {
 				var d = dataArray[data];
 				d['os'] = platformToOs(d['metaData']['platform']);
+				if (d['identity']['public-key'] in alices) {
+					d['os'] = 'alice';
+				}
 				var h = d['metaData']['height'];
 				if (h < maxH && (maxH-h)>10) {
 					d['metaData']['height'] = '<span style="color:#c60">'+h+'</span>';
@@ -492,7 +529,6 @@ function showStats() {
 		try {
 			json = res; //JSON.parse(res);
 			var html = "";
-			//alert(JSON.stringify(json));
 			var data = json['top50'];
 			for (var i = 0;i < data.length;i++) {
 				html += g_htrndr.render(data[i]);
@@ -543,9 +579,8 @@ function showChart() {
 			
 			try {
 				var json = res; //JSON.parse(res);
-				var data = json['blocktimes'];
-				
-				data = calcAvgBT(data,avg_blocks);
+				console.log(json);
+				var data = calcAvgBT(json['blocktimes'],json['tlen'],avg_blocks);
 				renderChart(data);
 	
 			} catch(e) {
@@ -615,7 +650,7 @@ function avrgMinMaxRange(data,minDate,maxDate) {
 	min -= min % 5;
 	max -= max % 5;
 	
-	return [min,max];	
+	return [Math.min(-5,min),Math.max(max,125)];
 }
 
 
@@ -635,7 +670,7 @@ function renderChart(data) {
 		
 		g_chart.updateOptions({
 			'file': data,
-			axes: {y2: {valueRange: getAvrgRange() }}
+			axes: {y2: {valueRange: getAvrgRange() } }
 			//', dateWindow': range
 		});
 		return;
@@ -650,21 +685,25 @@ function renderChart(data) {
 		document.getElementById("canvas"),
 		data,
 		{
-			labels: [ 'Height', 'Time', 'Average'],
+			labels: [ 'Height', 'Time', 'Average', '#TXs'],
 			labelsDiv: 'label_div',
-			colors: ['#8e8e8e','#dfa82f'],
+			colors: ['#8e8e8e','#dfa82f', '#41ce7b'],
 			axisLabelColor: '#ffffff',
 			strokeWidth: 1.75,
 			highlightCircleSize: 4,
 			dateWindow: range,
 			ylabel: 'Block time (seconds)',
 			y2label: 'Average block time (seconds)',
-            series: {
-              'Average': {
-                axis: 'y2',
-                stepPlot: false,
-              }
-            },
+			    series: {
+			      'Average': {
+				axis: 'y2',
+				stepPlot: false,
+			      },
+			      '#TXs': {
+				axis: 'y2',
+				stepPlot: false,
+			      }
+			    },
             axes: {
             	y: {
             		// set axis-related properties here
@@ -673,7 +712,7 @@ function renderChart(data) {
             	},
             	y2: {
             		// set axis-related properties here
-        			valueRange: getAvrgRange(), //[55,65],            		
+        		valueRange: getAvrgRange(), //[55,65],            		
             		labelsKMB: false,
             		drawGrid: true,
             		independentTicks: true,
@@ -712,28 +751,8 @@ function renderChart(data) {
 			legend: 'always',
 			showRangeSelector: true,
 			drawCallback: function(g) {
-				
-				/*
-				disabled - it slow down the graph rendering
-				var xRange = g.xAxisRange();
-				xRange[0] = Math.round(xRange[0]);
-				xRange[1] = Math.round(xRange[1]);
-				
-				g_avrg_range = avrgMinMaxRange(data,xRange[0],xRange[1]);
-				*/
 			},
 			zoomCallback: function(minDate, maxDate, yRanges) {
-				
-				/*
-				//disabled - it slow down the graph rendering and
-				//	conflicts with the normal range selction functionality
-				
-				g_avrg_range = avrgMinMaxRange(data,minDate,maxDate);
-				
-				g_chart.updateOptions({
-					axes: {y2: {valueRange: getAvrgRange() }}
-				});
-				*/
 			}
 		}
 	);
@@ -745,20 +764,22 @@ function renderChart(data) {
 calculate the averages block times
 returns: array containing array elemtns example: [height,time,average]
 */
-function calcAvgBT(data) {
+function calcAvgBT(data, txcount) {
 	
 	data = d3.entries(data);
+	//console.log(txcount)
 	
 	// sort data based on block height
+	/*
 	data.sort(function(a,b) {
 		var a = parseInt(a.key);
 		var b = parseInt(b.key);
 		
 		return a > b ? 1 : -1;
-	});
+	});*/
 
 	// set the average blocks calcuclation value
-	var avg_blocks = arguments.length == 2 && (! isNaN(arguments[1])) ? parseFloat(arguments[1]) : 60;
+	var avg_blocks = arguments.length == 3 && (! isNaN(arguments[2])) ? parseFloat(arguments[2]) : 60;
 	var calc = new Array();
 
 	// add first element twice (on purpose)
@@ -773,7 +794,8 @@ function calcAvgBT(data) {
 		var block = new Array(
 			parseInt(data[i].key),
 			data[i].value,
-			(sum_stack / avg_blocks)
+			(sum_stack / avg_blocks),
+			txcount[data[i].key]
 		);
 		
 		calc.push(block);
@@ -805,9 +827,12 @@ function showData() {
 	}
 	
 	var data = loadData(page);
-	renderData(data);
-	if (page == 1) {
-		g_last_height = data['data'][0]['height'];
+	if (data != null)
+	{
+		renderData(data);
+		if (page == 1) {
+			g_last_height = data['data'][0]['height'];
+		}
 	}
 	
 	// set timeout of 0.5 sec to avoid multiple requests because 
@@ -887,8 +912,8 @@ function loadData(page) {
 		}
 		
 	}).fail(function(xhr, ajaxOptions, thrownError) {
-		alert(xhr.status);
-		alert(thrownError);
+		console.log(xhr.status);
+		console.log(thrownError);
 	}).always(function() {
 		//g_running = false;
 	});
@@ -912,7 +937,7 @@ function searchData(hash) {
 			data: params,
 			url: URL
 	}).done(function(res) {
-		console.log(res);
+		//console.log(res);
 		//alert(res);
 		try {
 			json = res; //JSON.parse(res);

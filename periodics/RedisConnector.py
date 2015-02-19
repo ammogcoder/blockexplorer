@@ -29,7 +29,8 @@ class RedisConnector(BasePeriodic):
 				data = self.redis_client.zrangebyscore('blocks', self.lastHeight, self.lastHeight)
 				if len(data) > 0: 
 					print "got ",self.lastHeight,json.loads(zlib.decompress(data[0]))['height']
-		self.lastHeight -= 1
+		if self.lastHeight > 1:
+			self.lastHeight -= 1
 
 	def _get_height(self):
 		if self.redis_client.zcard('blocks') == 0:
@@ -169,6 +170,9 @@ class RedisConnector(BasePeriodic):
 		self.redis_client.set(blockData['hash'], tornado.escape.json_encode(block))
 		self.redis_client.publish('block_channel', tornado.escape.json_encode(block))
 		
+		print block['height'], block['timestamp_unix']
+		self.redis_client.zincrby('timestamps', block['height'], block['timestamp_unix'])
+
 		self.redis_client.zincrby('harvesters', blockHarvesterAddress, 1.0)
 		self.redis_client.zincrby('fees_earned', blockHarvesterAddress, fees_total)
 

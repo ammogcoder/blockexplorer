@@ -4,7 +4,6 @@ Distributed under the MIT License, see accompanying file LICENSE.txt
 import tornado.gen
 import ujson as json
 import traceback
-import zlib
 from api_connectors import async_httpapi
 from periodics.BasePeriodic import BasePeriodic
 
@@ -20,6 +19,7 @@ def isValidIp(address):
 class Col:
 	Success = '\033[1;37;42m'
 	Error = '\033[30;41m'
+	Special = '\033[30;4;41m'
 	Endl = '\033[0m'
 
 def error(*args):
@@ -45,6 +45,9 @@ class NetworkDiscoverer(BasePeriodic):
 	def addActiveNodes(self, response):
 		for node in json.loads(response.body)['active']:
 			hostname = node['endpoint']['host']
+			if hostname == 'localhost':
+				print Col.Special, '>>>', node, Col.Endl
+				continue
 			if (hostname not in self.allHosts) and (hostname not in self.processedHosts):
 				self.allHosts.add(hostname)
 				self.activeNodes[hostname] = node
@@ -65,7 +68,7 @@ class NetworkDiscoverer(BasePeriodic):
 	@tornado.gen.coroutine
 	def run(self):
 		try:
-			oldNodes = json.loads(self.redis_client.get('active_nodes'))
+			oldNodes = json.loads((self.redis_client.get('active_nodes') or "{}"))
 			self.activeNodes = {}
 			self.allHosts = set()
 			self.processedHosts = set()
@@ -109,8 +112,8 @@ class NetworkDiscoverer(BasePeriodic):
 
 				try:
 					response = yield node_api.getPeerList()
+					print 'adding nodes seen by HOST %s' % (target_host)
 					self.addActiveNodes(response)
-					print 'HOST %s processed' % (target_host)
 				except:
 					error('ERROR[2] communitcating with %s' % target_host)
 			self.redis_client.set('active_nodes', json.dumps(self.realActiveNodes))

@@ -141,11 +141,13 @@ class BlockChartHandlerCustom(BaseHandler):
 		number_of_blocks = int(self.get_argument('numBlock', 120)) + 1
 		starting_height = int(self.get_argument('height', 0)) - 1
 		time1 = time.clock()
-		blocks = self.redis_client.zrevrangebyscore('blocks', starting_height+number_of_blocks, starting_height)
+		#blocks = self.redis_client.zrevrangebyscore('blocks', starting_height+number_of_blocks, starting_height)
+		timestamps = self.redis_client.zrange('timestamps', end=starting_height+number_of_blocks, start=starting_height, withscores=True)
 		time2 = time.clock()
-		print "blocktimes got %d blocks [%s]" % (len(blocks), time2-time1)
+		print "blocktimes got %d blocks [%s]" % (len(timestamps), time2-time1)
 		times = collections.OrderedDict()
 		foo = collections.OrderedDict()
+		"""
 		blocks = map(lambda b: json.loads(zlib.decompress(b)), blocks)
 		for i in xrange(len(blocks) - 1):
 			blocka = blocks[i]
@@ -155,6 +157,15 @@ class BlockChartHandlerCustom(BaseHandler):
 			delta = timea - timeb
 			times[blocka['height']]= delta
 			foo[blocka['height']] = len(blocka['txes'])
+		"""
+		for i in xrange(len(timestamps) - 1):
+			t1 = timestamps[i]
+			t2 = timestamps[i + 1]
+			timea = t1[1]
+			timeb = t2[1]
+			delta = timeb - timea
+			times[t1[0]] = delta
+			foo[t1[0]] = 0
 		time3 = time.clock()
 		print "time taken: %s" % (time3-time2)
 		self.write(json.dumps({'blocktimes':times, 'tlen':foo}))
