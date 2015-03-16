@@ -9,7 +9,7 @@ import binascii
 sys.path.insert(0, 'python-sha3')
 from python_sha3 import *
 
-def convert_to_address(signer):
+def convert_to_address(signer, isTestNet=True):
     pubkey = binascii.unhexlify(signer)
     
     s = sha3_256() #hashlib.new('sha3_256')
@@ -20,7 +20,10 @@ def convert_to_address(signer):
     h.update(sha3_pubkey)
     ripe = h.digest()
     
-    version = "\x98" + ripe
+    if isTestNet:
+        version = "\x98" + ripe
+    else:
+        version = "\x68" + ripe
     
     #s2 = hashlib.new('sha3_256')
     s2 = sha3_256() #hashlib.new('sha3_256')
