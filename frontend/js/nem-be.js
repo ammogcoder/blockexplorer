@@ -117,6 +117,10 @@ function initPage() {
 		showStats();
 		break;
 		
+	case 'nxtstats':
+		showNxtStats();
+		break;
+
 	default:
 		showData();
 		g_web_sock = connectSocket(g_socket_link);
@@ -316,8 +320,10 @@ function initChartBlocksRangeSelect() {
 		switch(this.id) {
 
 		case 'calcRange':
-			
-			showChart();
+			if (g_section == 'stats')
+				showChart();
+			else if (g_section == 'nxtstats')
+				showNxtStats();
 			break;
 		}
 		
@@ -359,16 +365,81 @@ function compareIps(a,b) {
 	return (s1[0] - s2[0]) || (s1[1] - s2[1]);
 }
 
+function fixHeight(d, maxH) {
+	var h = d['metaData']['height'];
+	if (h < maxH && (maxH-h)>10) {
+		d['metaData']['height'] = '<span style="color:#c60">'+h+'</span>';
+	}
+	if (h == 0) {
+		d['class'] = 'red';
+		d['metaData']['height'] = '?';
+	}
+}
+
+var latest = [0, 5, 19];
+function fixVersion(d) {
+	var v = d['metaData']['version'];
+	var v2 = v.split(/-/);
+	if (v2[1] == 'DEVELOPER BUILD') {
+		return;
+	}
+	var v3 = v2[0].split(/\./).map(function(x){return parseInt(x);});
+	if (v3[1] !== latest[1]) {
+		d['metaData']['version'] = '<span style="color:red">' + d['metaData']['version'] + '</span>';
+		return;
+	}
+	
+	var h = latest[2] - v3[2];
+	if (h <= 3 && h>0) {
+		d['metaData']['version'] = '<span style="color:#dfa82f">' + d['metaData']['version'] + '</span>';
+	} else if (h > 2) {
+		d['metaData']['version'] = '<span style="color:#c60">' + d['metaData']['version'] + '</span>';
+	}
+}
+
+function fixUptime(d) {
+	if ('nisInfo' in d) {
+		var start = d['nisInfo']['startTime'];
+		var end = d['nisInfo']['currentTime'];
+		var hours = Math.floor((end - start) / 3600);
+		var days = Math.floor(hours / 24);
+		hours = hours -  24 * days;
+		d['uptime'] = days + 'd, ' + hours + 'h ';
+	} else {
+		d['uptime'] = 'n/a';
+	}
+}
+
+function fixData(d, maxH) {
+	fixVersion(d);
+	fixHeight(d, maxH);
+	fixUptime(d);
+}
+
+function sortVersions(v1, v2) {
+	var presuf1 = v1.split(/-/);
+	var presuf2 = v2.split(/-/);
+	var sv1 = presuf1[0].split(/\./).map(function(x){return parseInt(x);});
+	var sv2 = presuf2[0].split(/\./).map(function(x){return parseInt(x);});
+
+	var majorDiff = sv2[0] - sv1[0];
+	if (majorDiff != 0) {
+		return majorDiff;
+	}
+	var minorDiff = sv2[1] - sv1[1];
+	if (minorDiff != 0) {
+		return minorDiff;
+	}
+	return sv2[2] - sv1[2];
+}
+
 function showNodes() {
 	$("#tbl").attr("class","");
 	$("#tbl").addClass(g_section);	
 	
 	var tbl = $($("#nodes").html());
 	var tmpl = tbl.find("tbody").html();
-
-	if (g_htrndr == null) g_htrndr = new HTMLRenderer();
-	g_htrndr.setTemplate(tmpl);
-	g_htrndr.addFormatter("fees", fmtNemValue);
+	var headerTemplate = tbl.find("thead").html();
 
 	var sortbya = "endpoint"
 	var sortbyb = "host";
@@ -386,15 +457,21 @@ function showNodes() {
 		});
 	}
 
-	var sortFunc = function(o1, o2){
-		var k1 = o1[sortbya][sortbyb];
-		var k2 = o2[sortbya][sortbyb];
-		return k1 < k2 ? 1 : (k2 < k1 ? -1 : 0);
-	};
+	var sortFunc;
 	if (arguments.length == 0 || arguments[0] == "BY_HEIGHT") {
 		sortbya = "metaData";
 		sortbyb = "height";
 		$("#tbl thead th:eq(4)").addClass("sortable");
+
+		var sortFunc = function(o1, o2){
+			var k1 = o1[sortbya][sortbyb];
+			var k2 = o2[sortbya][sortbyb];
+			var v1 = o1['metaData']['version'];
+			var v2 = o2['metaData']['version'];
+			
+			return k1 < k2 ? 1 : (k2 < k1 ? -1 : sortVersions(v1,v2));
+		};
+
 	} else if (arguments[0] == "BY_ADDRESS") {
 		sortbya = "endpoint";
 		sortbyb = "host";
@@ -424,6 +501,13 @@ function showNodes() {
 		sortbya = "metaData";
 		sortbyb = "version";
 		$("#tbl thead th:eq(3)").addClass("sortable");
+		sortFunc = function(o1, o2){
+			var k1 = o1[sortbya][sortbyb];
+			var k2 = o2[sortbya][sortbyb];
+		
+			return sortVersions(k1,k2);
+		};
+
 	}
 
 	var alices = {
@@ -431,20 +515,34 @@ function showNodes() {
 		'708fbae6f7dc43b19e18a783d99535650504b60abd27b12137d17227ee3d5e84':'alice3',
 		'c7e68c147fe246caaf6f09d3a1b54a5744b1d3f55a22a8557c3a063d70669262':'alice4',
 		'c1d806564c3dda901c46e1dd4b533aae28eac148672afd69c91e7b51fe930948':'alice5',
-		'266c29aefaa4dbd3c206ea235c079d791dbb9808c428d4b3b206a088523ed1c8':'alice6'
+		'266c29aefaa4dbd3c206ea235c079d791dbb9808c428d4b3b206a088523ed1c8':'alice6',
+		'f60ab8a28a42637062e6ed43a20793735c58cb3e8f3a0ab74148d591a82eba4d':'bigalice2',	
+		'74375c15c6ce6bdbde59be88a069745a0de34444ea933f8c9f46ef407cf30196':'bigalice3'
 	};
 	$.get(g_api_link).done(function(res) {
-		//alert(res);
+
+		if (g_htrndr == null) g_htrndr = new HTMLRenderer();
+		var json = res;
+		
+		g_htrndr.setTemplate(headerTemplate);
+
+		var time = json['lastTime'].split('.')
+		var headerContent = g_htrndr.render({lastTime:time[0]});
+		$("#tbl thead").html(headerContent);
+
+		g_htrndr.setTemplate(tmpl);
+		g_htrndr.addFormatter("fees", fmtNemValue);
+
 		try {
-			var json = res;
 			var html = "";
 			var dataArray = [];
-			for (var data in json) {
-				dataArray.push(json[data]);
+			for (var data in json['nodes']) {
+				dataArray.push(json['nodes'][data]);
 			}
 			dataArray.sort(sortFunc);
 			var idx = 1;
 			var maxH = 0;
+
 			for (var data in dataArray) {
 				var d = dataArray[data];
 				var h = d['metaData']['height'];
@@ -464,14 +562,7 @@ function showNodes() {
 				if (d['identity']['public-key'] in alices) {
 					d['os'] = 'alice';
 				}
-				var h = d['metaData']['height'];
-				if (h < maxH && (maxH-h)>10) {
-					d['metaData']['height'] = '<span style="color:#c60">'+h+'</span>';
-				}
-				if (h == 0) {
-					d['class'] = 'red';
-					d['metaData']['height'] = '?';
-				}
+				fixData(d, maxH);
 				d['idx'] = idx;
 				html += g_htrndr.render(d);
 				idx += 1;
@@ -562,7 +653,7 @@ function showChart() {
 	}
 	
 	var avg_blocks = $("#calcRange").val();
-	var tot_blocks = 2000;
+	var tot_blocks = 5000;
 	
 	//get last block height
 	$.get("/api/last-block").done(function(res) {
@@ -579,7 +670,7 @@ function showChart() {
 			
 			try {
 				var json = res; //JSON.parse(res);
-				console.log(json);
+				//console.log(json);
 				var data = calcAvgBT(json['blocktimes'],json['tlen'],avg_blocks);
 				renderChart(data);
 	
@@ -598,6 +689,46 @@ function showChart() {
 	});
 	
 }
+
+function showNxtStats() {
+
+	$("#tbl").attr("class","");
+	$("#tbl").addClass(g_section);	
+	
+	$("#tbl tbody").html(".");
+			
+	$("#chart_info").show();
+	
+	if (g_chart == null) {
+		$("#canvas").addClass("loading");
+		$("#canvas").html("<h3>Loading</h3>");
+	}
+	
+	var avg_blocks = $("#calcRange").val();
+	var tot_blocks = 5000;
+	
+	// load the block times stats
+	var params = new Object();
+	params['numBlock'] = tot_blocks;
+	
+	$.get("/api/stats/nxttimes",params).done(function(res) {
+		
+		try {
+			var json = res; //JSON.parse(res);
+			//console.log(json);
+			var data = calcAvgBT(json['blocktimes'],json['tlen'],avg_blocks);
+			renderChart(data);
+
+		} catch(e) {
+			showErr(e.message);
+		}
+		
+	}).fail(function(xhr, ajaxOptions, thrownError) {
+		alert(xhr.status);
+		alert(thrownError);
+	});
+}
+
 
 /* to be used later maybe
 function pts_info(e, x, pts, row) {

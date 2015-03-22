@@ -150,6 +150,7 @@ a:hover { text-decoration: underline; }
  }
 
 .gimre #tbl tr.red td { background-color: #440E00; color:#888;}
+.gimre #tbl tr.red time { color: #ddd; }
 
 .gimre #tbl {
 	background-color: #000000;
@@ -449,7 +450,6 @@ nav ul li.selected:first-child a {
 
 #tbl td {
 	font-size:0.8em;
-	text-align:center;
 	border-right:1px solid #f0f0f0;
 	padding:10px;
 	/* font-weight:bold; */
@@ -514,6 +514,16 @@ td.sig {
 .stats th.sortable {
 	cursor: pointer;
 }
+
+table.nodes { width: 100%; table-layout: fixed; }
+.nodes th:nth-child(1) { width: 20px; }
+.nodes th:nth-child(2) { width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+.nodes th:nth-child(3) { width: 260px; }
+.nodes td:nth-child(3) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+.nodes th:nth-child(4) { width: 120px; }
+td.os { text-align: left; }
+.nodes th:nth-child(5) { width: 50px; }
+.nodes th:nth-child(7) { width: 60px; }
 
 #tbl.stats th.sortable:hover {
 	color:red;

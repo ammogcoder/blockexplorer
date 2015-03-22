@@ -171,6 +171,30 @@ class BlockChartHandlerCustom(BaseHandler):
 		self.write(json.dumps({'blocktimes':times, 'tlen':foo}))
 		self.finish()
 
+class NxtBlockChartHandlerCustom(BaseHandler):
+	
+	def get(self):
+		number_of_blocks = int(self.get_argument('numBlock', 120)) + 1
+		starting_height = int(self.get_argument('height', 0)) - 1
+		time1 = time.clock()
+		timestamps = self.redis_client.zrange('nxtstamps', -number_of_blocks-1, -1, withscores=True)
+		time2 = time.clock()
+		print "blocktimes got %d blocks [%s]" % (len(timestamps), time2-time1)
+		times = collections.OrderedDict()
+		foo = collections.OrderedDict()
+		for i in xrange(len(timestamps) - 1):
+			t1 = timestamps[i]
+			t2 = timestamps[i + 1]
+			timea = t1[1]
+			timeb = t2[1]
+			delta = timeb - timea
+			times[t1[0]] = delta
+			foo[t1[0]] = 0
+		time3 = time.clock()
+		print "time taken: %s" % (time3-time2)
+		self.write(json.dumps({'blocktimes':times, 'tlen':foo}))
+		self.finish()
+
 class HarvesterStatsHandler(BaseHandler):
 	
 	def get(self):
@@ -180,7 +204,7 @@ class HarvesterStatsHandler(BaseHandler):
 		if sortby in ('blocks', ''):
 			harvesters = self.redis_client.zrange('harvesters', 0, 49, 'desc', 'WITHSCORES')
 			for harvester in harvesters:
-				fees = self.redis_client.zscore('fees_earned', harvester[0])
+				fees = self.redis_client.zscore('fees_earned', harvester[0]) or "0"
 				result['top50'].append({'address': harvester[0], 'blocks': int(harvester[1]), 'fees': int(fees)})
 		
 		elif sortby == 'fees':
@@ -206,7 +230,9 @@ class CheckNis(BaseHandler):
 		else:
 			self.ip = self.request.headers.get('X-Forwarded-For')
 		try:
-			response = yield self.http_client.fetch("http://" + self.ip + ":7890/node/info")
+			url = "http://" + self.ip + ":7890/node/info"
+			req = tornado.httpclient.HTTPRequest(url, connect_timeout=1.0, request_timeout=3.0)
+			response = yield self.http_client.fetch(req)
 			self.write(response.body)
 		except:
 			self.write(json.dumps({'error':'Could not communicate with remote NIS at %s' % self.ip}))
@@ -215,6 +241,9 @@ class CheckNis(BaseHandler):
 		
 class NodeListHandler(BaseHandler):
 	def get(self):
-		self.write(self.redis_client.get('active_nodes'))
+		r = self.redis_client.get('nodes_last_time')
+		d = json.loads(self.redis_client.get('active_nodes'))
+		o = {'nodes':d, 'lastTime':r}
+		self.write(json.dumps(o))
 		self.finish()
 		

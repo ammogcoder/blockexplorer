@@ -23,10 +23,11 @@ class AHttpApi():
 		return self.http_client.fetch(req)
 	
 	def _postrequest(self, callurl, data):
-		return self.http_client.fetch(urlparse.urljoin(self.base_url, callurl),
-										  method='POST', 
-										  headers={'Content-Type': 'application/json'}, 
-										  body=data)
+		return self.http_client.fetch(
+			urlparse.urljoin(self.base_url, callurl),
+			method='POST', 
+			headers={'Content-Type': 'application/json'}, 
+			body=data)
 		
 	def getFirstBlock(self):
 		data = json.dumps({'height':1})
@@ -53,5 +54,23 @@ class AHttpApi():
 		return self._getrequest('chain/last-block')
 
 	def getNodeInfo(self):
-		return self._getrequest('node/info')
+		return self._getrequest('node/extended-info')
+
+class NxtHttpApi():
+	def __init__(self, baseurl):
+		self.base_url = baseurl
+		self.http_client = tornado.httpclient.AsyncHTTPClient()
+	
+	def _getrequest(self, callurl, **kwargs):
+		url = urlparse.urljoin(self.base_url, 'nxt?' + callurl)
+		req = tornado.httpclient.HTTPRequest(url, connect_timeout=1.0, request_timeout=10.0)
+		return self.http_client.fetch(req)
+	
+	def getBlockAt(self, height):
+		uri = 'requestType=getBlock&height=' + str(height)
+		return self._getrequest(uri)
+		
+	def getLastBlock(self):
+		uri = 'requestType=getBlock'
+		return self._getrequest(uri)
 

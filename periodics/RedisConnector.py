@@ -189,6 +189,9 @@ class RedisConnector(BasePeriodic):
 		except:
 			traceback.print_exc() 
 		try:
+			lastblock = yield self.api.getLastBlock()
+			maxheight = json.loads(lastblock.body)['height'] - 10
+
 			if self.redis_client.zcard('blocks') == 0:
 				response = yield self.api.getFirstBlock()
 				blockData = {}
@@ -201,7 +204,9 @@ class RedisConnector(BasePeriodic):
 			print "getting blocks at ", height
 			response = yield self.api.getBlocksAfter(height)
 			for blockData in json.loads(response.body)['data']:
-				self.processBlock(blockData)
+				block = blockData["block"] 
+				if block['height'] < maxheight:
+					self.processBlock(blockData)
 		except:
 			print "exception"
 			traceback.print_exc()

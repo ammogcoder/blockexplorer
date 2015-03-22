@@ -23,6 +23,7 @@ from handlers.ApiHandler import SearchTxByHashHandler
 from handlers.ApiHandler import SearchHandler
 from handlers.ApiHandler import FromToTxHandler
 from handlers.ApiHandler import BlockChartHandlerCustom
+from handlers.ApiHandler import NxtBlockChartHandlerCustom
 from handlers.ApiHandler import HarvesterStatsHandler
 from handlers.ApiHandler import CheckNis
 from handlers.ApiHandler import NodeListHandler
@@ -86,6 +87,8 @@ if __name__ == '__main__':
          (r'/api/stats/v2/blocktimes', BlockChartHandlerCustom),
          (r'/api/stats/harvesters', HarvesterStatsHandler),
          (r'/api/stats/nodes', NodeListHandler),
+	
+         (r'/api/stats/nxttimes', NxtBlockChartHandlerCustom),
          #sockets
          #blocks
          (r'/socket/last-block', LatestBlockSocket),
