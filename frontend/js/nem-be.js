@@ -1431,7 +1431,7 @@ var hash = CryptoJS.SHA3(binPubKey, { outputLength: 256 });
 var hash2 = CryptoJS.RIPEMD160(hash);
 var versionPrefixedRipemd160Hash = '98' + CryptoJS.enc.Hex.stringify(hash2);
 var tempHash = CryptoJS.SHA3(CryptoJS.enc.Hex.parse(versionPrefixedRipemd160Hash), { outputLength: 256 });
-var stepThreeChecksum = CryptoJS.enc.Hex.stringify(tempHash).substr(0,8);;
+var stepThreeChecksum = CryptoJS.enc.Hex.stringify(tempHash).substr(0,8);
 
 var concatStepThreeAndStepSix = hex2a(versionPrefixedRipemd160Hash + stepThreeChecksum);
 

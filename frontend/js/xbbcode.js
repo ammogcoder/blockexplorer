@@ -433,7 +433,7 @@ var XBBCODE = (function() {
 
         errQueue = checkParentChildRestrictions("bbcode", config.text, -1, "", "", config.text);
 
-        ret.html = parse(config);;
+        ret.html = parse(config);
 
         if ( ret.html.indexOf("[") !== -1 || ret.html.indexOf("]") !== -1) {
             errQueue.push("Some tags appear to be misaligned.");
